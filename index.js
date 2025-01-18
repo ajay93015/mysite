@@ -1,53 +1,25 @@
 const express = require('express');
-
-const ejs = require('ejs');
-const bodyParser = require('body-parser');
-
-const fs = require("fs");
-const { exec } = require("child_process");
-const http = require("http");
-const socketIo = require("socket.io");
-const cors = require('cors');
-const { Server } = require('socket.io');
-
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+const path = require('path');
 
-app.set("view engine", "ejs");
-app.use(express.static("public"));
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(express.json());
-//const app = express();
-const server = http.createServer(app);
-const io = new Server(server);
+// Set the view engine to EJS
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
 
+// Middleware to serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Define routes
 app.get('/', (req, res) => {
-    res.sendFile(__dirname + '/views/index.html');
+    res.render('index', { title: 'Home Page', message: 'Welcome to EJS Rendered Website!' });
 });
 
-io.on('connection', (socket) => {
-    console.log('A user connected');
-
-    socket.on('offer', (data) => {
-        socket.broadcast.emit('offer', data);
-    });
-
-    socket.on('answer', (data) => {
-        socket.broadcast.emit('answer', data);
-    });
-
-    socket.on('candidate', (data) => {
-        socket.broadcast.emit('candidate', data);
-    });
-
-    socket.on('disconnect', () => {
-        console.log('User disconnected');
-    });
+app.get('/about', (req, res) => {
+    res.render('about', { title: 'About Us', message: 'Learn more about us here.' });
 });
 
 // Start the server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-   // console.log(`Server is running on http://localhost:${PORT}`);
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
