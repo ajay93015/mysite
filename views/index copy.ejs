@@ -1,0 +1,408 @@
+<%-include('header')-%>
+  
+<div style="margin:5%;">
+<div style="
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-evenly;
+    align-items: flex-start;
+">
+
+
+    <div class="containerrep">
+    <h1>Pnb PBP</h1>
+<form id="filterForm">
+        <label for="textInput">Paste here Copied Data of Form:</label><br>
+        <textarea id="textInput" name="textInput" rows="10" style="height: 250px; width: 300px;resize: none;" placeholder="<%-include('demo')-%>"cols="50"></textarea><br>
+        <button type="button" onclick="filterText()">Filter</button>
+    </form>
+    <b>Instructions:</b>
+    <ol>
+      <b>आप यहाँ  भी देख सकते हैं कि कॉपी कैसे करें। Ctrl+a बटन दबाएं, फिर Ctrl+C दबाएं और दिए गए टेक्स्टप्लेस पर जाएं और पेस्ट करने के लिए Ctrl+v दबाएं</b>
+        <li>Copy Full Page:</li>
+        <p>Copy the entire content of the page you want to filter.</p>
+        
+        <li>Paste Copied Data:</li>
+        <p>Paste the copied data into the text area above.</p>
+        
+        <li>Filter:</li>
+        <p>Click the "Filter" button to initiate the filtering process.</p>
+    </ol>
+</div>
+
+    <div id="filteredInfo" style="display: block;">
+        
+   
+
+    <style>
+  body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+}
+
+.containerrep {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  max-width: 360px;
+  margin: 50px auto;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+select,
+input[type="text"],input[type="date"] {
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+    
+textarea{
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+    }
+
+button {
+  background-color: #007bff;
+  color: #fff;
+  padding: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+  </style>
+    <div style="min-width: 289px;width:auto; max-width:400px;" class="containerrep">
+    <h1>Add Passbook To Print</h1>
+    <form action="/process" method="post">
+      <label for="gender">Gender:</label>
+      <select id="gender" name="gender" style="display:block;" required="">
+        <option>Select</option>
+        <option value="MR">MR</option>
+        <option value="MRS">MRS</option>
+        <option value="MOHD">MOHD</option>
+        <option value="SHRI">SHRI</option>
+        <option value="SMT">SMT</option>
+        <option value="KUMARI">KUMARI</option>
+        <option value="MS">MS</option>
+      </select>
+
+
+      <label for="A/C Open Date">A/C Open Date</label>
+      <input type="text"oninput="dat()" name="acopen"id="date">
+       <label for="PBP Print Date">PBP Print Date</label>
+      <input type="text" name="acprint"id="acprint" readonly>
+
+      <label for="full_name">Full Name:</label>
+      <input type="text" style="text-transform: uppercase;" id="full_name" placeholder="CUST_NAME" name="full_name" required="">
+
+      <label for="cif_number">CIF Number:</label>
+      <input type="text" style="text-transform: uppercase;" id="cif_number" placeholder="CUST_CIF" name="cif_number" required="">
+
+      <label for="account_number">Account Number:</label>
+      <input type="text" maxlength="16" placeholder="CUST_AC_NUMBER" id="account_number" name="account_number" required="">
+      <label for="account_number">Adhar Number Last Four Digit:</label>
+      <input type="text" placeholder="EX. CUST_AADHAR 1234" maxlength="4" id="adhar_number" name="adhar_number" required="">
+
+      
+
+
+<label for="relationship_name">Father/Husband Name:</label>
+      <input type="text" id="relationship_name" placeholder="Ex. C/O: Divana Kol" name="relationship_name" required="">
+     <!--
+      <label for="date">Account Open Date:</label>
+      <input type="Date" id="date" placeholder="Ex. C/O: Divana Kol" name="date" required>
+      -->
+      <label for="full_address">Full address:</label>
+      <input type="text" placeholder="Ex. 159,WARD No 13 BARHI, BARHI" id="full_address" name="full_address" required="">
+      <input type="text" placeholder="Ex. BARHI, BARHI" id="full_address2" name="full_address2" required="">
+      <label for="City">City,State,Pincode:</label>
+      <input type="text" id="City" value="KATNI, MADHYA PRADESH, 483770" placeholder="KATNI, MADHYA PRADESH, 483770" name="City" required="">
+
+     
+      <ul id="infoList" style="display:none;"></ul>
+
+      <!--
+      <label for="relationship">Relationship:</label>
+      <select id="relationship" name="relationship">
+        <option>Select</option>
+        <option value="son">S/O</option>
+        <option value="child">C/O</option>
+        <option value="wife">W/O</option>
+      </select>
+      <input type="text" id="relationship_name" name="relationship_name" placeholder="Enter Name">
+      -->
+      
+      
+      
+      <button onclick="submit()"type="submit">Add To Print</button>
+    </form>
+  </div>
+ 
+
+
+<script>
+
+  // Create a new Date object for the current date
+  var currentDate = new Date();
+  
+  // Get the day, month, and year components
+  var day = currentDate.getDate();
+  var month = currentDate.getMonth() + 1; // Month is zero-based, so add 1
+  var year = currentDate.getFullYear();
+  
+  // Pad single-digit day and month with leading zeros if necessary
+  day = day < 10 ? '0' + day : day;
+  month = month < 10 ? '0' + month : month;
+  
+  // Format the date as "dd-mm-yyyy"
+  var formattedDate = day + '-' + month + '-' + year;
+  
+  // Set the value of the target element to the new date format
+  document.getElementById('date').value = formattedDate;
+  document.getElementById('acprint').value = formattedDate;
+        function dat() {
+            var inputDate = document.getElementById('date').value;
+            var formattedDate = inputDate.replaceAll('-', '');
+
+            if (formattedDate.length >= 8) {
+                formattedDate = formattedDate.slice(0, 2) + '-' + 
+                                formattedDate.slice(2, 4) + '-' + 
+                                formattedDate.slice(4, 8);
+            }
+            
+            document.getElementById('date').value = formattedDate;
+        }
+
+
+</script>
+
+    <script>
+    
+        function filterText() {
+            const text = document.getElementById('textInput').value;
+            const keywords = ['Customer Name', 'Account No', 'Aadhaar No', 'Customer ID','Sex','Flat No./Bldg. Name','Date of Birth'];
+            const filteredInfo = {};
+
+            keywords.forEach(keyword => {
+                const regex = new RegExp(`${keyword}\\s+(.*?)(?=(?:\\n|\\r|$))`, 'i');
+                const match = text.match(regex);
+                if (match) {
+                    filteredInfo[keyword] = match[1].trim();
+                }
+            });
+
+            const infoList = document.getElementById('infoList');
+            infoList.innerHTML = '';
+
+            Object.keys(filteredInfo).forEach(key => {
+                const listItem = document.createElement('div');
+                listItem.innerHTML = `<!--- <strong>${key}:</strong> ${filteredInfo[key]} ---> <textarea id="${key.replace(/ /g, '_')}"name="${key}">${filteredInfo[key].toUpperCase()}</textarea>
+                `;
+                infoList.appendChild(listItem);
+            });
+
+            document.getElementById('filteredInfo').style.display = 'block';
+
+
+
+const mf = document.getElementById('Sex');
+const Customer_Name = document.getElementById('Customer_Name');
+const Account_No = document.getElementById('Account_No');
+const Aadhaar_No = document.getElementById('Aadhaar_No').value.replace(/X/g,'');
+const Customer_ID = document.getElementById('Customer_ID');
+const Flat = document.getElementById('Flat_No./Bldg._Name');
+const full_name = document.getElementById('full_name').value = Customer_Name.value;
+const cif_number = document.getElementById('cif_number').value = Customer_ID.value;
+const account_number = document.getElementById('account_number').value = Account_No.value;
+const adhar_number = document.getElementById('adhar_number').value = Aadhaar_No;
+const dob = document.getElementById('Date_of_Birth');
+const doby = dob.value; // Get the input value in 'dd-mm-yyyy' format
+
+// Split the input value to extract day, month, and year
+const [day, month, year] = doby.split('-');
+
+// Create a new Date object using the extracted values
+const dateObj = new Date(`${year}-${month}-${day}`);
+
+// Log the full year from the Date object
+const custdob = dateObj.getFullYear();
+const age =currentDate.getFullYear()- custdob;
+
+if( mf.value === 'MALE'){
+ document.getElementById('gender').options[1].selected = true;
+}
+if( mf.value === 'FEMALE'){
+ if( age < 18){
+   document.getElementById('gender').options[6].selected = true;
+  //console.log('under 18',age)
+}else if(age === 18){
+   document.getElementById('gender').options[6].selected = true;
+  //console.log('18 ',age)
+}else{
+   document.getElementById('gender').options[5].selected = true;
+ //console.log('over 18 ',age)
+}
+
+}
+//const relationship_name =  document.getElementById('relationship_name').value = Flat.value;
+
+/*
+by form (js script)
+full_name
+cif_number
+account_number
+adhar_number
+Flat No./Bldg. Name
+
+
+
+/pbp (post)
+Customer Name
+Account No
+Aadhaar No
+Customer ID
+relationship_name
+*/
+const fullAddressInput = document.getElementById('full_address');
+const fullAddress2Input = document.getElementById('full_address2');
+const cityInput = document.getElementById('City');
+const rel =  document.getElementById('relationship_name');
+
+// Given input data
+const inputData = Flat.value;
+
+// Split the input data by comma
+const parts = inputData.split(',');
+
+// Extract specific parts
+const reln = parts.slice(0, parts.length - 4).join(',').trim();
+const fullAddress = parts.slice(1, parts.length - 3).join(',').trim();
+const fullAddress2 = parts.slice(3, parts.length - 3).join(',').trim();
+const city = parts.slice(-3).join(',').trim();
+
+// Update the input field values
+
+//const c = reln.split(/\s*,\s*/).filter(word => !fullAddress.split(/\s*,\s*/).includes(word)).join(',');
+
+fullAddressInput.value = fullAddress.split(/\s*,\s*/).filter(word => !fullAddress2.split(/\s*,\s*/).includes(word)).join(',');
+//fullAddressInput.value = fullAddress;
+fullAddress2Input.value = fullAddress2;
+cityInput.value = city;
+//var firstWord = city.split(",");
+//var firstWord = city.split(" ")[0].replace(",", ""); // Remove comma if needed
+//console.log(firstWord[0]);
+rel.value=reln.split(/\s*,\s*/).filter(word => !fullAddress.split(/\s*,\s*/).includes(word)).join(',');
+
+
+
+
+
+
+
+        }
+
+   
+ </script>
+
+
+</div>
+  
+       <div class="containerrep">
+<div class="section">
+        <h2>Donate</h2>
+         <p><img src="<%=url%>"></p>
+         <strong>Donate to increese more services.</strong>
+    </div>
+    </div>
+  
+  
+  </div>
+  </div>
+   <div class="bg-dark"style="color:white;font-family:cursive;text-align:center;padding:6px;" >&copy 2023 ajay</div>
+  <style>
+  body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #f5f5f5;
+}
+
+.containerrep {
+  background-color: #fff;
+  padding: 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  width: 400px;
+  margin: 50px auto;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+select,
+input[type="text"],input[type="date"] {
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+}
+    
+textarea{
+  padding: 10px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+    }
+
+button {
+  background-color: #007bff;
+  color: #fff;
+  padding: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+  </style>
+    
+   <%-include('footer')-%> 
+    
+    

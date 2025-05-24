@@ -1,0 +1,101 @@
+ <script>document.addEventListener("DOMContentLoaded", function() {
+    const titlesToRemove = ["MR", "MRS", "KUMARI", "SMT","MOHD","MS","SELECT"];
+    
+    // Select all the rows in the table body
+    const rows = document.querySelectorAll("#dataTable tbody tr");
+    
+    rows.forEach(row => {
+        // Get the Full Name cell (3rd column, index 2)
+        const fullNameCell = row.cells[2];
+        
+        if (fullNameCell) {
+            let fullName = fullNameCell.textContent;
+
+            // Loop through the titles and remove them
+            titlesToRemove.forEach(title => {
+                // Create a regex to match the title followed by a space
+                const regex = new RegExp(`\\b${title}\\b`, 'gi');
+                fullName = fullName.replace(regex, "").trim();
+            });
+
+            // Update the Full Name cell with the cleaned name
+            fullNameCell.textContent = fullName.toUpperCase();
+        }
+    });
+});
+</script>
+<style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom:30vh;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: #fff;
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            text-decoration: none;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+      
+.scroll-down-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-size: 18px;
+}
+
+.scroll-down-btn:hover {
+    background-color: #0056b3;
+}
+
+    </style>
+</head>
+<body>
+  SUBMIT DATE  ...../...../......
+    <table id="dataTable" >
+        <thead>
+            <tr>
+                <th>S No</th>
+                <th>Ac Date</th>
+                <th>Full Name</th>
+                <th>Account Number</th>
+                <th>CIF Number</th>
+                <th>✓ or ✘ </th>
+                
+            </tr>
+        </thead>
+        <tbody>
+        <% let serialNumber = 1; %>  
+   <% printent.forEach((print) => { %>
+        <tr>
+          <td><%= serialNumber++ %></td>
+          <td><%- print.date %></td>
+          <td><%- print.name %></td>
+          <td><%- print.accountno %></td>
+          <td><%- print.custid %></td>
+          <td></td>
+        </tr>
+      <% }) %>
+        </tbody>
+    </table>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%=print.full_name.toUpperCase()%></title>
+    <style>
+        body {
+            margin: 0;
+        }
+
+        #passbook {
+            background-image: url(https://cdn.glitch.global/a871eceb-d30a-4533-bb7e-d96382bb56cd/passbookbank.png);
+            background-size: cover; 
+            background-repeat: no-repeat; 
+            background-position: center; 
+            margin: 0;
+            width: 210mm; 
+            height: 297mm; 
+            font-weight: 500;
+        }
+
+        @media print {
+            .bgradio {
+                display: none !important;
+            }
+        }
+    </style>
+      
+</head>
+<body>
+ <label class="bgradio"for="removeBgCheckbox">Remove Background Image
+   <input type="checkbox" id="removeBgCheckbox" onchange="toggleBackgroundImage()">    <button onclick="window.print()">Print</button> <a class="btn" href="/">Home</a></label>
+    <div id="passbook">
+
+    
+    <script>
+        function toggleBackgroundImage() {
+            var passbook = document.getElementById("passbook");
+            var removeBgCheckbox = document.getElementById("removeBgCheckbox");
+            if (removeBgCheckbox.checked) {
+                passbook.style.backgroundImage = "none";
+            } else {
+                passbook.style.backgroundImage = "url(https://cdn.glitch.global/a871eceb-d30a-4533-bb7e-d96382bb56cd/passbookbank.png)";
+            }
+        }
+    </script>
+
+<pre style="font-family:arial;margin-top:20px;margin-left:4.5%;font-size:15px;font-weight: 00;color:black;">        
+Each depositor is insured by DICGC upto a maximum Rs.5.00lac 
+subject to change from time to time (T&amp;C applicable)
+
+
+            BO: GAIRTALAI (DISTT.KATNI)
+    V&amp;PO GAIRTALAI, DISTT KATNI-483770 (PHN.07626-273-224)
+        
+        
+        
+        IFSC Code: PUNB0139100 
+        MICR Code: 483024503
+
+*Toll Free -18001802222/18001032222,Tolled- 0120490000,Email-care@pnb.co.in*
+    *Principal Nodal Officer:  Phn-01128044907*
+        Mode of Operation : SELF 
+        CIF Id: <%=print.cif_number%>
+        Account No: <%=print.account_number%> INR Aadhar XX<%=print.adhar_number%>
+        <%=print.gender%> <%=print.full_name.toUpperCase()%>
+        Account Open Date: <%=print.acopen%>
+        <%=print.relationship_name.toUpperCase()%>
+        <%=print.full_address.toUpperCase()%>
+        <%=print.full_address2.toUpperCase()%>
+
+        <%=print.City.toUpperCase()%>
+        Date of Issue: <%=print.acopen%>
+    </pre>
+
+
+
+
+
+
+
+
+
+
+
+
+

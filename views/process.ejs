@@ -1,0 +1,73 @@
+<%-include('header')-%>
+
+<style>
+/* Style the data container */
+.data-container {
+    margin-top: 20px;
+}
+
+/* Style the label */
+.label {
+    font-weight: bold;
+}
+
+/* Style each line of data */
+.data-container p {
+    margin: 5px 0;
+}
+
+/* Center the form container */
+.form-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* Adjust as needed */
+}
+#form{
+	border:10px solid gray;
+	padding:5px;
+}
+/* Style the input fields */
+input[type="hidden"] {
+    display: none; /* Hide the hidden input fields */
+}
+
+/* Style the button */
+h1{
+	text-align:center;
+	background-image:linear-gradient(10deg,white,black);
+}
+
+</style>
+<h1>Passbook Successfully Added</h1>
+<div class="form-container">
+
+    <form action="/passbook" id="form" method="post">
+        <input type="hidden" name="gender" value="<%- data.gender %>">
+        <input type="hidden" name="full_name" value="<%- data.full_name %>">
+        <input type="hidden" name="cif_number" value="<%- data.cif_number %>">
+        <input type="hidden" name="account_number" value="<%- data.account_number %>">
+        <input type="hidden" name="adhar_number" value="<%- data.adhar_number %>">
+        <input type="hidden" name="full_address" value="<%- data.full_address %>">
+        <input type="hidden" name="full_address2" value="<%- data.full_address2 %>">
+        <input type="hidden" name="relationship_name" value="<%- data.relationship_name %>">
+        <input type="hidden" name="City" value="<%- data.City %>">
+        <input type="hidden" name="acopen" value="<%- data.acopen %>">
+        <input type="hidden" name="acprint" value="<%- data.acprint %>">
+    
+    <p><span class="label">City:</span> <%= data.City %></p>
+    <p><span class="label">Full Name:</span><%= data.gender %> <%= data.full_name %></p>
+    <p><span class="label">CIF Number:</span> <%= data.cif_number %></p>
+    <p><span class="label">Account Number:</span> <%= data.account_number %></p>
+    <p><span class="label">Adhar Number:</span> <%= data.adhar_number %></p>
+    <p><span class="label">Relationship Name:</span> <%= data.relationship_name %></p>
+	<p><span class="label">Full Address:</span> <%= data.full_address %></p>
+	<p><span class="label">Full Address 2:</span> <%= data.full_address2 %></p>
+        <input class="btn btn-primary" type="submit" name="viewpbp" value="Print Passbook">
+        <a class="btn btn-danger" href="/">Add Another</a> <a class="btn btn-secondary" href="/passbook">Search Another</a>
+    </form>
+</div>
+<%-include('footer')-%> 
+
+
+

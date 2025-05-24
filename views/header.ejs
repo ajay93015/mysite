@@ -1,0 +1,223 @@
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/mertelizer/css/mertelizer.min.css">
+    
+</head>
+<body>
+
+<!-- Navbar -->
+<nav>
+    <div class="nav-wrapper">
+        <a href="#" class="brand-logo"><i class="fas fa-wallet"></i>Passbook</a>
+        <a href="#" data-target="mobile-demo" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+        <ul id="nav-mobile" class="right hide-on-med-and-down">
+            <li><a href="/">Home</a></li>
+            <li><a href="/">Add Passbook</a></li>
+            <li><a href="/passbook">Search Passbook</a></li>
+            <li><a href="/agent">Agent</a></li>
+            <li><a href="/ent">PRINT REG.</a></li>
+            <li><a href="/pent">PRINTED REG.</a></li>
+            <li><a href="/sbgen">SBGEN</a></li>
+            <li><a href="/adhar">ADHAR</a></li>
+          <li><a href="/pic">PIC</a></li>
+            <!--  <%if(typeof user !== 'undefined'){%><li><a>Your Active Days : 30</a></li><%}%> -->
+           <!-- <li><a href="/signup"class="waves-effect waves-light btn">Sign Up</a></li>
+            <li><a href="/login" class="waves-effect waves-light btn">Log In</a></li> -->
+        </ul>
+    </div>
+</nav>
+
+<!-- Side Navbar for Mobile -->
+<ul class="sidenav" id="mobile-demo">
+    <li><a href="/">Home</a></li>
+    <li><a href="/">Add Passbook</a></li>
+    <li><a href="/passbook">Search Passbook</a></li>
+    <li><a href="#">Pricing</a></li>
+    <li><a href="/ent">PRINT REG.</a></li>
+    <li><a href="/pent">PRINTED REG.</a></li>
+    <li><a href="/sbgen">SBGEN</a></li>
+    <li><a href="/adhar">ADHAR</a></li>
+  <li><a href="/pic">PIC</a></li>
+   <!--  <%if(typeof user !== 'undefined'){%><li><a>Your Active Days : 30</a></li><%}%> -->
+  <!--  <li><a href="/signup"class="waves-effect waves-light btn">Sign Up</a></li>
+    <li><a href="/login" class="waves-effect waves-light btn">Log In</a></li>-->
+</ul>
+
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+
+  <script>
+    
+    function morphoo(){
+      
+//  var url = "https://127.0.0.1:11100/getDeviceInfo";
+
+         var xhr;
+			var ua = window.navigator.userAgent;
+			var msie = ua.indexOf("MSIE ");
+
+			if (msie > 0 || !!navigator.userAgent.match(/Trident.*rv\:11\./)) // If Internet Explorer, return version number
+			{
+				//IE browser
+				xhr = new ActiveXObject("Microsoft.XMLHTTP");
+			} else {
+				//other browser
+				xhr = new XMLHttpRequest();
+			}
+        
+        //
+        xhr.open('DEVICEINFO', url, true);
+
+         xhr.onreadystatechange = function () {
+		// if(xhr.readyState == 1 && count == 0){
+		//	fakeCall();
+		//}
+		if (xhr.readyState == 4){
+            var status = xhr.status;
+
+            if (status == 200) {
+
+                //alert(xhr.responseText);
+				   		 
+	            //console.log(xhr.response);
+              var deviceInfo = $.parseXML(xhr.responseText.trim());
+              var $deviceInfo = $(deviceInfo);
+              var serialElement = $deviceInfo.find("DeviceInfo");
+
+                if (serialElement.length > 0) {
+                    // Try different attribute names if "srno" is not correct
+                     var serialId = $deviceInfo.find("Param[name='srno']").attr("value"); // Get the serial ID
+
+                        if (serialId) {
+                            //console.log("Device Serial ID:", serialId);
+                            //alert("Device Serial ID: " + serialId);
+                            if(serialId === '2404I003801'){
+                              //alert("true1")
+                               // alert('Serial:'+ serialId);
+                            }else{
+                              if(serialId === '2436I044529'){
+                                //alert("true2")
+                               // alert('Serial:'+ serialId);
+                            }else{
+                               window.location.href = 'https://127.0.0.1:11100';
+                            }
+                              
+                            }
+                        } else {
+                        window.location.href = 'https://127.0.0.1:11100';
+                    }
+                }
+
+            } else 
+			{
+                
+	            console.log(xhr.response);
+
+            }
+			}
+
+        };
+
+	 xhr.send();
+xhr.onerror= function (){
+ 
+        function generateUniqueId() {
+        const info = navigator.userAgent + navigator.platform + screen.width + screen.height + navigator.language;
+      // alert(info);
+        return btoa(info); // Encode as a base64 string
+    }
+
+    const uniqueId = generateUniqueId();
+   // console.log("Pseudo-Unique ID:", uniqueId);
+  //document.getElementById('device-info').innerHTML="<textarea>"+uniqueId+"</textarea>";
+  if(uniqueId === "TW96aWxsYS81LjAgKExpbnV4OyBBbmRyb2lkIDEwOyBLKSBBcHBsZVdlYktpdC81MzcuMzYgKEtIVE1MLCBsaWtlIEdlY2tvKSBDaHJvbWUvMTE0LjAuMC4wIE1vYmlsZSBTYWZhcmkvNTM3LjM2TGludXggYXJtdjgxMzYwODA2ZW4tVVM=" || "TW96aWxsYS81LjAgKFgxMTsgTGludXggeDg2XzY0KSBBcHBsZVdlYktpdC81MzcuMzYgKEtIVE1MLCBsaWtlIEdlY2tvKSBDaHJvbWUvMTE0LjAuMC4wIFNhZmFyaS81MzcuMzZMaW51eCBhcm12ODEzNjA4MDZlbi1VUw=="){
+    //alert("matched");
+    window.location.href="https://127.0.0.1:11100";
+  }else{
+   window.location.href = 'https://127.0.0.1:11100';
+   //navigator.clipboard.writeText(uniqueId);
+  }
+}
+
+    };
+    
+    var deviceInfoPath = "http://127.0.0.1:11100";
+
+//startLogin();
+getDeviceSerialId();
+    // Start the biometric login process
+   
+   function getDeviceSerialId() {
+    if (!deviceInfoPath) {
+        console.error("Device info path is not set.");
+        return;
+    }
+
+    var xhr = GetXmlHttpRequest();
+    xhr.open("DEVICEINFO", deviceInfoPath, true);
+
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            try {
+                // Log the full response to check its structure
+                //console.log("Device Info XML Response:", xhr.responseText);
+
+                var deviceInfo = $.parseXML(xhr.responseText.trim());
+                var $deviceInfo = $(deviceInfo);
+                var serialElement = $deviceInfo.find("DeviceInfo");
+
+                if (serialElement.length > 0) {
+                    // Try different attribute names if "srno" is not correct
+                     var serialId = $deviceInfo.find("Param[name='srno']").attr("value"); // Get the serial ID
+
+                        if (serialId) {
+                           // console.log("Device Serial ID:", serialId);
+                            //alert("Device Serial ID: " + serialId);
+                            if(serialId != 7629649){
+                              //  alert(serialId);
+                            }else{
+                               // alert('fine')
+                            }
+                        } else {
+                        //console.error("step 1");
+                          morphoo();
+                    }
+                } else {
+                    console.error("DeviceInfo element not found in the XML.");
+                }
+            } catch (e) {
+                console.error("Error parsing device info XML:", e);
+            }
+        } else {
+            console.error("Failed to retrieve device info. Status:", xhr.status);
+        }
+    };
+
+     xhr.onerror = function () {
+        morphoo();
+    };
+    xhr.send();
+}
+
+
+    
+    
+    // Helper function for XMLHttpRequest
+    function GetXmlHttpRequest() {
+        return window.XMLHttpRequest ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+    }
+    
+</script>
+
+  
+
+

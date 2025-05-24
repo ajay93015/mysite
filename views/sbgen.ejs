@@ -1,0 +1,93 @@
+<%-include('header')-%>
+    <style>
+   
+        .form-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 50%;
+        }
+
+        .form-container h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-container label {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .form-container input[type="text"],
+        .form-container input[type="acno"] {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .form-container input[type="submit"] {
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .form-container input[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+      @media print {
+    .nav-wrapper {
+        display: none;
+    }
+}
+    </style>
+<%if(name != undefined ){%>
+<pre style="font-family:math;"><b>
+To,
+The Branch Manager,
+Punjab National Bank,
+Branch: Gairtlai,
+Pin Code: 483770
+
+Subject: SBBDA खाता से SBGEN खाते में परिवर्तन करने हेतु ।
+
+महोदय/महोदया,
+
+सविनय निवेदन है कि मैं, <%-name-%>, आपका खाताधारक हूँ। मेरे खाते का विवरण निम्नलिखित है:
+खाताधारक का नाम: <%-name-%>,
+खाता संख्या: <%-acno-%>
+
+मैं आपसे निवेदन करता हूँ कि मेरे SBBDA खाते को SBGEN खाते में परिवर्तित करने की कृपा करें।
+
+
+धन्यवाद।
+
+                                                                                                 भवदीय
+                                                                                                 <%-name-%>
+</b></pre>
+  <%}else{%> 
+  <center>
+      <div class="form-container">
+        <h2>SBGEN APPLICATION</h2>
+        <form action="" method="post">
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name">
+
+            <label for="acno">Account Number:</label>
+            <input type="text" id="acno" name="acno">
+
+            <input type="submit" value="Submit">
+        </form>
+        </div>
+        </center>
+  <%}%>

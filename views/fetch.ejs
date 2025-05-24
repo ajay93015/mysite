@@ -1,0 +1,167 @@
+<%-include('header')-%>
+    <script>document.addEventListener("DOMContentLoaded", function() {
+    const titlesToRemove = ["MR", "MRS", "KUMARI", "SMT","MOHD","MS"];
+    
+    // Select all the rows in the table body
+    const rows = document.querySelectorAll("#dataTable tbody tr");
+    
+    rows.forEach(row => {
+        // Get the Full Name cell (3rd column, index 2)
+        const fullNameCell = row.cells[2];
+        
+        if (fullNameCell) {
+            let fullName = fullNameCell.textContent;
+
+            // Loop through the titles and remove them
+            titlesToRemove.forEach(title => {
+                // Create a regex to match the title followed by a space
+                const regex = new RegExp(`\\b${title}\\b`, 'gi');
+                fullName = fullName.replace(regex, "").trim();
+            });
+
+            // Update the Full Name cell with the cleaned name
+            fullNameCell.textContent = fullName;
+        }
+    });
+});
+</script>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom:30vh;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: #fff;
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            text-decoration: none;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+      
+.scroll-down-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-size: 18px;
+}
+
+.scroll-down-btn:hover {
+    background-color: #0056b3;
+}
+
+    </style>
+</head>
+<body>
+    <h1>Search Passbook To Print</h1>
+<div  style="padding:0;background-color:black;color:white;padding:10px;text-align:center;">
+    Search By Name - <input type="text" id="searchInput" style="width:30%;background-color:#646464;padding-left:5px; min-width:300px;color:White;" placeholder="Search by name...">
+</div>
+  <div style="//overflow-y:auto;//display:block;//height:70vh;">  
+    <table id="dataTable" >
+        <thead>
+            <tr>
+                <th>S.No.</th>
+                <th>Acopen</th>
+                <th>Full Name</th>
+                <th>CIF Number</th>
+                <th>Account Number</th>
+                <th>Adhar Number</th>
+                <th>Update</th>
+                <th>Print</th>
+                <th>MANNUAL ENTRY</th>
+            </tr>
+        </thead>
+        <tbody>
+        <% let serialNumber = 1; %>
+              <% data.forEach(function(row) { %>
+              <tr>
+              <td style="text-align:center;"><%= serialNumber++ %></td>
+              <td><%= row.acopen %></td>
+              <td><%= row.gender %> <%= row.full_name.toUpperCase() %></td>
+              <td><%= row.cif_number %></td>
+              <td><%= row.account_number %></td>
+              <td><%= row.adhar_number %></td>
+              <td><a href="/passbook/<%= row.account_number %>" class="btn-primary">Print</a></td>
+              <td><a href="/update/<%= row.account_number %>" class="btn-primary">Update</a></td>
+              <td><form action="/ent" method="post">
+                <input type="hidden" name="date" value="<%= row.acopen %>">
+                <input type="hidden" name="name" value="<%= row.gender %> <%= row.full_name.toUpperCase() %>">
+                <input type="hidden" name="custid" value="<%= row.cif_number %>">
+                <input type="hidden" name="accountno" value="<%= row.account_number %>">
+                <input type="hidden" name="adhar" value="<%= row.adhar_number %>">
+                <input type="submit" value="ENTRY <%= row.account_number %>" class="btn-primary">
+                
+                </form>
+                </td>
+                
+              </tr>
+        <% }); %>
+        </tbody>
+                </table>
+  </div>
+
+    <script>
+        // Get the input field and table
+        var input = document.getElementById("searchInput");
+        var table = document.getElementById("dataTable");
+
+        // Add event listener for keyup event on the input field
+        input.addEventListener("keyup", function() {
+            // Get the filter value (user input)
+            var filter = input.value.toUpperCase();
+            
+            // Get the rows of the table
+            var rows = table.getElementsByTagName("tr");
+
+            // Loop through all table rows, and hide those that don't match the search query
+            for (var i = 0; i < rows.length; i++) {
+                var fullNameCell = rows[i].getElementsByTagName("td")[1]; // Get the cell containing the full name
+                if (fullNameCell) {
+                    var fullName = fullNameCell.textContent || fullNameCell.innerText; // Get the full name text
+                    if (fullName.toUpperCase().indexOf(filter) > -1) { // Check if the full name matches the filter
+                        rows[i].style.display = "";
+                    } else {
+                        rows[i].style.display = "none";
+                    }
+                }
+            }
+        });
+      
+      
+      
+      //scroll down code
+document.addEventListener('DOMContentLoaded', function() {
+    const scrollDownBtn = document.getElementById('scrollDownBtn');
+    scrollDownBtn.addEventListener('click', function() {
+        window.scrollTo({
+            top: (document.body.scrollHeight) - 1000,
+            behavior: 'smooth'
+        });
+    });
+});
+    </script>
+                <button id="scrollDownBtn" class="scroll-down-btn">⬇️</button>
+</body>
+</html>
+<%-include('footer')-%> 

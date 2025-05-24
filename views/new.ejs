@@ -1,0 +1,414 @@
+
+<body>
+   
+      <%-include('header')-%>
+      <div style="display:flex;    flex-wrap: wrap;
+   ">
+       <title>Adhar</title>
+      
+        
+     
+     <style>
+     body {
+     font-family: Arial, sans-serif;
+     margin: 0;
+     padding: 0;
+     background-color: #f5f5f5;
+   }
+   
+ 
+   
+   h1 {
+     text-align: center;
+     margin-bottom: 20px;
+   }
+   
+   form {
+     display: flex;
+     flex-direction: column;
+   }
+   
+   label {
+     font-weight: bold;
+     margin-bottom: 5px;
+   }
+   
+   select,
+   input[type="text"],input[type="date"] {
+     padding: 10px;
+     margin-bottom: 15px;
+     border: 1px solid #ccc;
+     border-radius: 3px;
+   }
+       
+   textarea{
+     padding: 10px;
+     margin-bottom: 15px;
+     border: 1px solid #ccc;
+     border-radius: 3px;
+       }
+   
+   button {
+     background-color: #007bff;
+     color: #fff;
+     padding: 10px;
+     border: none;
+     cursor: pointer;
+   }
+   
+   button:hover {
+     background-color: #0056b3;
+   }
+   
+     </style>
+       
+       
+       
+       
+       
+      
+      
+      
+      
+      
+      
+      
+   <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+   <script>
+   $(document).ready(function(){
+      
+       var photoarr = [<%-name.pht%>];
+   
+       
+       var base64 = btoa(String.fromCharCode.apply(null, new Uint8Array(photoarr)));
+   
+       
+       var imageData = "data:image/png;base64," + base64;
+   
+   
+   
+   //console.log("Image Data URL:", imageData);
+   
+   
+   //console.log("%c ", `font-size: 100px; background: url(${imageData}) no-repeat; background-size: contain;`);
+       document.getElementById('adimg').value= imageData;
+       document.getElementById('imgsrrr').src= imageData;
+      
+   });
+   </script>
+    <div style="    
+    display: flex;
+       min-width: 289px;
+       width: auto;
+       flex-wrap: wrap;
+       flex-direction: column;
+   
+ 
+       background-color: #fff;
+       padding: 20px;
+       border-radius: 5px;
+       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+       width: 400px;
+       margin: 50px auto;margin-top:20%;"class="container">
+   
+        <button onclick="translateText()">Translate</button></br>
+      
+   <form action="/aadhar" method="post">
+     
+   <div style="display:flex;justify-content:center;flex-direction: column;flex-wrap: nowrap;align-items: center;">
+    <img id="imgsrrr" style="margin-top: 10px;">
+   <input type="imageurl" id="adimg" name="imgurl">
+   <p style="margin-right:auto;color:#007bff;margin-bottom:0;">Landmark:    </p>
+   <input type="text" name="lm" placeholder="lm" value="<%-name.poa.lm%>">
+
+
+<p style="margin-right:auto;color:#007bff;margin-bottom:0;">Sub-District:   </p>
+   <input type="text" name="subdist" placeholder="subdist" value="<%-name.poa.subdist%>">
+
+<p style="margin-right:auto;color:#007bff;margin-bottom:0;">Postal Code:   </p>
+   <input type="text" name="pc" placeholder="pc" value="<%-name.poa.pc%>">
+
+<p style="margin-right:auto;color:#007bff;margin-bottom:0;">VTC:   </p>
+   <input type="text" name="vtc" placeholder="vtc" value="<%-name.poa.vtc%>">
+
+<p style="margin-right:auto;color:#007bff;margin-bottom:0;">STREET:</p>
+   <input type="text" name="street" placeholder="street" value="<%-name.poa.street%>">
+   
+<p style="margin-right:auto;color:#007bff;margin-bottom:0;">DISTRICT:</p>
+   <input type="text" name="dist" placeholder="dist" value="<%-name.poa.dist%>">
+   
+<p style="margin-right:auto;color:#007bff;margin-bottom:0;">STATE:</p>
+   <input type="text" name="state" placeholder="state" value="<%-name.poa.state%>">
+   
+<p style="margin-right:auto;color:#007bff;margin-bottom:0;">CARE OF:</p>
+   <input type="text" name="co" placeholder="co" value="<%-name.poa.co%>">
+   
+<p style="margin-right:auto;color:#007bff;margin-bottom:0;">HOUSE NO:</p>
+   <input type="text" name="house" placeholder="house" value="<%-name.poa.house%>">
+  
+<p style="margin-right:auto;color:#007bff;margin-bottom:0;">POST OFFICE:</p>
+   <input type="text" name="po" placeholder="po" value="<%-name.poa.po%>">
+   
+
+   <p style="margin-right:auto;color:#007bff;margin-bottom:0;">UIDAI:</p>
+   <input type="text" id="uid"name="uid" value="<%-name.uid%>">
+   <p style="margin-right:auto;color:#007bff;margin-bottom:0;">GENDER:</p>
+   <input type="text" name="gender" value="<%if (name.poi.gender == 'M'){%>पुरुष/ MALE<%}else{%>महिला/ FEMALE<%}%>">
+   <p style="margin-right:auto;color:#007bff;margin-bottom:0;">DOB hindi:</p>
+   <input type="text" name="hidob" value="जन्म तिथि/DOB:">
+   <p style="margin-right:auto;color:#007bff;margin-bottom:0;">DATE OF BIRTH:</p>
+   <input type="text" id="englishText1" name="dob" value="<%-name.poi.dob%>">
+   <p style="margin-right:auto;color:#007bff;margin-bottom:0;">ENGLISH NAME:</p>
+   <input type="text"id="englishText2"  name="name" value="<%-name.poi.name%>">
+   <p style="margin-right:auto;color:#007bff;margin-bottom:0;">ENGLISH ADDRESS:</p>
+   <textarea id="englishText3"  name="adr"><%=name.poa.co%>, <%=name.poa.house%>, <%=name.poa.street%>, <%=name.poa.lm%>, <%=name.poa.po%>, <%=name.poa.vtc%>, <%=name.poa.subdist%>, <%=name.poa.dist%>, <%=name.poa.state%>, <%=name.poa.pc%>
+   </textarea>
+   
+   </div>
+   
+   <label for="hindiText1">DOB:</label><br>
+   <textarea id="hindiText1" name="hindiText1" rows="5" cols="50" ></textarea><br>
+   
+   <label for="hindiText2">HINDI NAME:</label><br>
+   <textarea id="hindiText2" name="hindiText2" rows="5" cols="50" ></textarea><br>
+   
+   
+   <label for="hindiText3">HINDI ADDRESS:</label><br>
+   <textarea id="hindiText3" min-height="300px" name="hindiText3" rows="5" cols="50" ></textarea><br>
+   
+   <input type="submit" value="Submit" style="font-size: x-large;cursor:pointer;background-color: #A1A1A1; color: whitesmoke; margin: auto; width: fit-content; border-radius: 5px;transition: 1s;" onmouseover="this.style.backgroundColor='black';this.style.color='whitesmoke'" onmouseout="this.style.backgroundColor='#A1A1A1';this.style.color='whitesmoke'">
+
+   </form>
+   
+   
+   <br>
+   
+   <script>
+   function translateText() {
+     
+       translateSingleText("englishText1", "hindiText1");
+       translateSingleText("englishText2", "hindiText2");
+       translateSingleText("englishText3", "hindiText3");
+   }
+   
+   function translateSingleText(englishId, hindiId) {
+       var englishText = document.getElementById(englishId).value;
+       var xhr = new XMLHttpRequest();
+       
+       // Using Google Translate API endpoint for single translation
+       xhr.open("GET", `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=hi&dt=t&q=${encodeURIComponent(englishText)}`, true);
+       
+       xhr.onreadystatechange = function() {
+           if (xhr.readyState == 4 && xhr.status == 200) {
+               var response = JSON.parse(xhr.responseText);
+               if (response && response[0] && response[0][0]) {
+                   document.getElementById(hindiId).value = response[0][0][0];  // Extracting translated text
+               } else {
+                   alert("Translation failed. Please try again later.");
+               }
+           }
+       };
+       xhr.send();
+   }
+   </script>
+   
+   
+   
+   
+   
+   
+   <style>
+    
+    
+    .keyboard { transition:ease-in-out 5s;  display: block;position: fixed;bottom: 0;left: 0; flex-wrap: wrap; justify-content: center; gap: 5px; padding: 10px; max-width: 300px; margin: auto; background: white; border-radius: 8px; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); }
+    .key { color:BLACK;padding: 10px 15px; font-size: 18px; cursor: pointer; border: 1px solid #ccc; border-radius: 5px; background: #fff; transition: 0.3s; }
+    .key:hover { background: #dcdcdc; }
+    .space { width: 100px; }
+    .hidden { display: none; } /* Keyboard hidden initially */
+</style>
+</head>
+<body>
+  <div id="movable-element">
+<div class="keyboard hidden" id="keyboard">
+    <!-- स्वर -->
+    <button class="key">अ</button>
+    <button class="key">आ</button>
+    <button class="key">इ</button>
+    <button class="key">ई</button>
+    <button class="key">उ</button>
+    <button class="key">ऊ</button>
+    <button class="key">ऋ</button>
+    <button class="key">ए</button>
+    <button class="key">ऐ</button>
+    <button class="key">ओ</button>
+    <button class="key">औ</button>
+
+    <!-- व्यंजन -->
+    <button class="key">क</button>
+    <button class="key">ख</button>
+    <button class="key">ग</button>
+    <button class="key">घ</button>
+    <button class="key">ङ</button>
+    <button class="key">च</button>
+    <button class="key">छ</button>
+    <button class="key">ज</button>
+    <button class="key">झ</button>
+    <button class="key">ञ</button>
+    <button class="key">ट</button>
+    <button class="key">ठ</button>
+    <button class="key">ड</button>
+    <button class="key">ढ</button>
+    <button class="key">ण</button>
+    <button class="key">त</button>
+    <button class="key">थ</button>
+    <button class="key">द</button>
+    <button class="key">ध</button>
+    <button class="key">न</button>
+    <button class="key">प</button>
+    <button class="key">फ</button>
+    <button class="key">ब</button>
+    <button class="key">भ</button>
+    <button class="key">म</button>
+    <button class="key">य</button>
+    <button class="key">र</button>
+    <button class="key">ल</button>
+    <button class="key">व</button>
+    <button class="key">श</button>
+    <button class="key">ष</button>
+    <button class="key">स</button>
+    <button class="key">ह</button>
+    <button class="key">ळ</button>
+    <button class="key">क्ष</button>
+    <button class="key">ज्ञ</button>
+
+    <!-- मात्राएँ -->
+    <button class="key">ा</button>
+    <button class="key">ि</button>
+    <button class="key">ी</button>
+    <button class="key">ु</button>
+    <button class="key">ू</button>
+    <button class="key">ृ</button>
+    <button class="key">े</button>
+    <button class="key">ै</button>
+    <button class="key">ो</button>
+    <button class="key">ौ</button>
+    <button class="key">ं</button>
+    <button class="key">ँ</button>
+    <button class="key">ः</button>
+    <button class="key">्</button>
+
+    <!-- Space और Backspace -->
+    <button class="key space">⎵</button>
+    <button class="key" onclick="backspace()">⌫</button>
+</div>
+
+<script>
+    let activeInput = null;
+    const keyboard = document.getElementById("keyboard");
+
+    // जब कोई इनपुट या टेक्स्टएरिया फोकस होगा, कीबोर्ड दिखेगा
+    document.querySelectorAll("input, textarea").forEach(input => {
+        input.addEventListener("focus", function () {
+            activeInput = this;
+            keyboard.classList.remove("hidden"); // कीबोर्ड दिखाएं
+        });
+    });
+
+    // कीबोर्ड के किसी भी अक्षर को क्लिक करने पर इनपुट में टाइप होगा
+    document.querySelectorAll(".key").forEach(key => {
+        key.addEventListener("click", function () {
+            if (activeInput) {
+                activeInput.value += this.innerText;
+            }
+        });
+    });
+
+    // बैकस्पेस फंक्शन
+    function backspace() {
+        if (activeInput) {
+            activeInput.value = activeInput.value.slice(0, -1);
+        }
+    }
+
+    // जब यूज़र कहीं और क्लिक करे, तो कीबोर्ड छिपाएं
+    document.addEventListener("click", function (event) {
+        if (!event.target.closest(".keyboard") && !event.target.closest("input, textarea")) {
+            keyboard.classList.add("hidden");
+        }
+    });
+</script>
+
+   <script>
+   // Get the input element
+   const inputElement = document.getElementById('englishText1');
+     inputElement.value = inputElement.value.replace(/-/g, '/');
+     const adhar_number = document.getElementById('uid');
+     adhar_number.value = adhar_number.value.replace(/X/g, '');
+     adhar_number.value = adhar_number.value.replace(/-/g, '');
+   
+   const uidInput = document.getElementById('uid');
+    let value = uidInput.value;
+   
+     // Remove all spaces from the current value
+     value = value.replace(/\s/g, '');
+   
+     // Insert a space after every fourth digit
+     value = value.replace(/(\d{4})/g, '$1 ');
+   
+     // Update the value of the input field
+     uidInput.value = value.trim();
+   
+      setTimeout(()=>{   
+             translateText()},2000
+            );
+      
+
+            const movableElement = document.getElementById('movable-element');
+
+let isDragging = false;
+
+let initialX = 0;
+
+let initialY = 0;
+
+
+
+movableElement.addEventListener('mousedown', (event) => {
+
+  isDragging = true;
+
+  initialX = event.clientX;
+
+  initialY = event.clientY;
+
+});
+
+
+
+document.addEventListener('mousemove', (event) => {
+
+  if (isDragging) {
+
+    const newX = event.clientX - initialX;
+
+    const newY = event.clientY - initialY;
+
+    movableElement.style.left = newX + 'px';
+
+    movableElement.style.top = newY + 'px';
+
+  }
+
+});
+
+
+
+document.addEventListener('mouseup', () => {
+
+  isDragging = false;
+
+});
+   </script>
+  </div></div></div>
+   
+<%-include("footer")-%>    

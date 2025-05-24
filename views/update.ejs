@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Account</title>
+</head>
+<body>
+    <%- include("header") %>
+<div class="containerform">
+    <h1>Update Account: <%= print.account_number %></h1>
+    <form action="/update/<%= print.account_number %>" method="POST">
+        <label for="gender">Gender:</label>
+        <input type="text" id="gender" name="gender" value="<%= print.gender %>" required><br>
+      
+        <label for="acopen">Account Open:</label>
+        <input type="text" id="acopen" name="acopen" value="<%= print.acopen %>" required><br>
+
+      
+        <label for="full_name">Full Name:</label>
+        <input type="text" id="full_name" name="full_name" value="<%= print.full_name %>" required><br>
+      
+        <label for="cif_number">CIF Number:</label>
+        <input type="text" id="cif_number" name="cif_number" value="<%= print.cif_number %>" required><br>
+        
+        <label for="cif_number">Account Number:</label>
+        <input type="text" id="acno" name="acno" value="<%= print.account_number %>" required><br>
+      
+        <label for="adhar_number">Aadhar Number:</label>
+        <input type="text" id="adhar_number" name="adhar_number" value="<%= print.adhar_number %>" required><br>
+      
+        <label for="relationship_name">Relationship Name:</label>
+        <input type="text" id="relationship_name" name="relationship_name" value="<%= print.relationship_name %>" required><br>
+
+        <label for="full_address">Full Address:</label>
+        <input type="text" id="full_address" name="full_address" value="<%= print.full_address %>" required><br>
+
+        <label for="full_address2">Full Address 2:</label>
+        <input type="text" id="full_address2" name="full_address2" value="<%= print.full_address2 %>" required><br>
+
+        <label for="City">City:</label>
+        <input type="text" id="City" name="City" value="<%= print.City %>" required><br>
+
+
+
+
+
+
+
+       
+        <button type="submit">Update Account</button>
+      </form></div>
+</body>
+</html>
+  <style>
+  /* Container */
+.containerform {
+    max-width: 600px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Form styling */
+form {
+    display: flex;
+    flex-direction: column;
+}
+
+form label {
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+form input[type="text"],
+form input[type="number"],
+form input[type="email"],
+form input[type="password"] {
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+form button {
+    padding: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+form button:hover {
+    background-color: #218838;
+}</style>
+  <%-include("footer")-%>

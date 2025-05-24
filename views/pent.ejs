@@ -1,0 +1,126 @@
+<%-include('header')-%>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom:30vh;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: #fff;
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+            border-radius: 3px;
+            text-decoration: none;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+      
+.scroll-down-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    padding: 15px;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    font-size: 18px;
+}
+
+.scroll-down-btn:hover {
+    background-color: #0056b3;
+}
+
+    </style>
+</head>
+<body>
+  <div style="text-align:center;margin:0;background-image:linear-gradient(75degding:10px;">
+    <script>
+document.addEventListener('DOMContentLoaded', function() {
+    const table = document.getElementById('dataTable');
+    const rows = table.querySelectorAll('tbody tr');
+    const seen = new Set();
+
+    rows.forEach(row => {
+        const link = row.querySelector('td a');
+        const date = link.textContent;
+
+        if (seen.has(date)) {
+            row.remove();
+        } else {
+            seen.add(date);
+        }
+    });
+});
+</script>
+
+        <table id="dataTable" >
+        <thead>
+            <tr>
+
+                <th>AC ENTRY REG ENTRY DELETE</th>
+                <th>AC ENTRY REG  PRINT</th>
+
+                
+            </tr>
+        </thead>
+        <tbody>
+<% printent.forEach((printItem) => { %>
+  <tr>
+    <td><a href="/pent/<%- printItem.printeddate -%>"><%- printItem.printeddate -%></a></td>
+    <td><a href="/print/<%- printItem.printeddate -%>"><%- printItem.printeddate -%></a></td>
+  </tr>
+<% }) %>
+        </tbody>
+    </table>
+
+    <script>
+      
+  // Create a new Date object for the current date
+  var currentDate = new Date();
+  
+  // Get the day, month, and year components
+  var day = currentDate.getDate();
+  var month = currentDate.getMonth() + 1; // Month is zero-based, so add 1
+  var year = currentDate.getFullYear();
+  
+  // Pad single-digit day and month with leading zeros if necessary
+  day = day < 10 ? '0' + day : day;
+  month = month < 10 ? '0' + month : month;
+  
+  // Format the date as "dd-mm-yyyy"
+  var formattedDate = day + '-' + month + '-' + year;
+  
+  // Set the value of the target element to the new date format
+  document.getElementById('date').value = formattedDate;
+  
+
+  
+      //scroll down code
+document.addEventListener('DOMContentLoaded', function() {
+    const scrollDownBtn = document.getElementById('scrollDownBtn');
+    scrollDownBtn.addEventListener('click', function() {
+        window.scrollTo({
+            top: (document.body.scrollHeight) - 1000,
+            behavior: 'smooth'
+        });
+    });
+});
+    </script>
+                <button id="scrollDownBtn" class="scroll-down-btn">⬇️</button>
+</body>
+</html>
+<%-include('footer')-%> 

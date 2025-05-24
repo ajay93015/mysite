@@ -1,0 +1,63 @@
+<%-include('header')-%>
+   <style>
+   
+    #dropZone.dragover {
+      background-color: #f0f8ff;
+      color: #000;
+    }
+  </style>
+</head>
+<body id="dropZone">
+  
+<h1>Drag and Drop Anywhere</h1>
+<div >Drag and drop your image here</div>
+
+<form id="photoForm" enctype="multipart/form-data" method="POST" action="/pic">
+  <input type="file" id="fileInput" name="photo" accept="//image/*" style="//display: none;">
+  <button type="submit">Upload</button>
+</form>
+
+  <h3>Already Present FIles</h3>
+  <%-include('pic_load')-%>
+
+<script>
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+  const form = document.getElementById('photoForm');
+
+  dropZone.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+
+  dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+  });
+
+  dropZone.addEventListener('drop', (event) => {
+    event.preventDefault();
+    dropZone.classList.remove('dragover');
+
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+      fileInput.files = files; // Assign the dropped file to the file input
+
+      // Automatically submit the form (optional, can be removed if manual submission is preferred)
+      const formData = new FormData();
+      formData.append('photo', files[0]);
+
+      fetch(form.action, {
+        method: 'POST',
+        body: formData,
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('Base64:', data.base64);
+          alert('Image converted to Base64 and sent successfully!');
+        })
+        .catch(error => {
+          console.error('Error uploading file:', error);
+        });
+    }
+  });
+</script>

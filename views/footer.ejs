@@ -1,0 +1,232 @@
+
+<!-- Materialize JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var elems = document.querySelectorAll('.sidenav');
+        var instances = M.Sidenav.init(elems, {});
+    });
+</script>
+
+<footer class="footer">
+    <div class="container">
+        <div class="footer-content">
+            <div class="footer-section about">
+                <h2>About Us</h2>
+                <p>Welcome to our website! We are dedicated to providing you with the best service possible. Our team works tirelessly to ensure that your experience with us is smooth and enjoyable.</p>
+                <p>With years of experience in our field, we are confident in our ability to meet your needs and exceed your expectations. Whether you're looking for information, products, or services, we're here to help.</p>
+                <p>Feel free to explore our website and learn more about what we have to offer. If you have any questions or concerns, don't hesitate to reach out to us. We're always happy to assist you.</p>
+                <p>Thank you for choosing us. We look forward to serving you!</p>
+            </div>
+            <div class="footer-section links">
+                <h2>Quick Links</h2>
+                <ul>
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/">Add Passbook</a></li>
+                    <li><a href="/passbook">Search Passbook</a></li>
+                    <li><a href="#">Pricing</a></li>
+                </ul>
+            </div>
+            <div class="footer-section contact-form">
+                <h2>Contact Us</h2>
+                Mob. No.  <p class="footer-p"><a href="tel:+919301751642">+919301751642</a></p>
+                Email Id.  <p class="footer-p"><a href="mailto:ajayvishwakarma9301@gmail.com">ajayvishwakarma9301@gmail.com</a></p>
+                <!--
+                <form action="#">
+                    <input type="email" name="email" class="text-input contact-input" placeholder="Your email address">
+                    <textarea name="message" class="text-input contact-input" placeholder="Your message"></textarea>
+                    <button type="submit" class="btn contact-btn">Send</button>
+                </form>
+                -->
+            </div>
+        </div>
+        <div class="footer-bottom">
+            &copy; 2024 My Website. All rights reserved.
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>
+<style>
+        /* Custom styles for the offer section */
+        .offer-container {
+            padding: 20px;
+            background-color: #A1A1A1;
+        }
+
+        .offer-title {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+
+        .offer-description {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+
+        .offer-button {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .offer-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+<!-- Custom CSS -->
+<style>
+
+/*jamboturn css */
+  /* Jumbotron CSS */
+        .jumbotron {
+            background-image: linear-gradient(#ee6e73,black);
+            padding: 100px 0;
+            text-align: center;
+            color: #ccc;
+            border-top:1px solid white;
+            border-bottom:1px solid white;
+            //color:black;
+        }
+        .jumbotron h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .jumbotron p {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+    /* Section CSS */
+        .section {max-width: 450px;
+            padding: 5px;
+            text-align: center;
+            background-color: #f3f3f3;
+            margin: 5px;
+        }
+        .section h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+        }
+        .section p {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+    /*jamboturn css*/
+    /* General CSS */
+    body, html {
+        margin: 0;
+        padding: 0;
+    }
+    .container {
+        display: flex;
+        flex-wrap: wrap;
+
+    }
+
+    /* Sidebar CSS */
+    .sidebar {
+        flex: 0 0 200px;
+        background-color: #f0f0f0;
+        padding: 20px;
+    }
+    .sidebar h2 {
+        margin-top: 0;
+    }
+
+    /* Main Section CSS */
+    .main-section {
+        flex: 1;
+        padding: 20px;
+    }
+    .news {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    .news-item {
+        flex: 0 0 calc(33.33% - 20px);
+        background-color: #e0e0e0;
+        margin: 10px;
+        padding: 20px;
+    }
+    @media only screen and (max-width: 768px) {
+        .sidebar {
+            flex-basis: 100%;
+        }
+        .news-item {
+            flex-basis: calc(50% - 20px);
+        }
+    }
+
+    /* Footer CSS */
+    .footer {
+        background-color: #333;
+        color: #fff;
+        padding: 50px 0;
+    }
+    .footer-content {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    .footer-section {
+        flex: 1;
+        margin-bottom: 20px;
+    }
+    .footer-section h2 {
+        color: #fff;
+        font-size: 18px;
+        margin-bottom: 10px;
+    }
+    .footer-section p {
+        font-size: 14px;
+    }
+    .footer-section ul {
+        list-style: none;
+        padding: 0;
+    }
+    .footer-section ul li {
+        margin-bottom: 10px;
+    }
+    .footer-section ul li a {
+        color: #fff;
+        text-decoration: none;
+    }
+    .contact-input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #fff;
+        background-color: transparent;
+        color: #fff;
+    }
+    .contact-input::placeholder {
+        color: #ccc;
+    }
+    .contact-btn {
+        padding: 10px 20px;
+        background-color: #fff;
+        color: #333;
+        border: none;
+        cursor: pointer;
+    }
+    .contact-btn:hover {
+        background-color: #ccc;
+    }
+    .footer-bottom {
+        text-align: center;
+        margin-top: 20px;
+    }
+    .footer-p{
+        border: 1px solid #fff;
+        background-color: transparent;
+        color: #ccc;
+        text-align: center;
+        padding:5px;
+    }
+    
+</style>
