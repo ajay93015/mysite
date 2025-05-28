@@ -121,7 +121,7 @@ app.get("/passbook", (req, res) => {
   });
 });
 
-const sites = ["https://csandjurnalism.glitch.me", "https://pnbpsb.glitch.me"];
+const sites = ["https://pnbwork.onrender.com/"];
 
 const utcNow = new Date();
 
