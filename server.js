@@ -158,7 +158,7 @@ function checkup() {
 if (istHour >= 9 && istHour < 19) {
   checkup();
 }
-
+*/
 // Ping every 4 minutes (less than Glitch's 5-minute sleep)
 setInterval(() => {
   sites.forEach((site) => {
@@ -167,11 +167,11 @@ setInterval(() => {
 
       .catch((err) => console.log(`❌ Error pinging ${site}:`, err.message));
   });
-}, 240000); // every 4 minutes
+}, 40000); // every 4 minutes
 
 
 
-*/
+
 app.post("/process", (req, res) => {
   const data = req.body;
 
