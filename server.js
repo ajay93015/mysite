@@ -11,12 +11,13 @@ const path = require("path");
 const multer = require("multer");
 const axios = require("axios");
 const socketIo = require('socket.io');
-const io = socketIo(server);
+
 const qrcode = require("qrcode");
 const app = express();
 const port = 3000;
 const http = require('http');
 const server = http.createServer(app);
+const io = socketIo(server);
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(express.json());
