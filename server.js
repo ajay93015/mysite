@@ -1,7 +1,6 @@
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
-const http = require('http');
-const server = http.createServer(express);
+
 const ejs = require("ejs");
 const bodyParser = require("body-parser");
 const session = require("express-session");
@@ -16,6 +15,8 @@ const io = socketIo(server);
 const qrcode = require("qrcode");
 const app = express();
 const port = 3000;
+const http = require('http');
+const server = http.createServer(app);
 app.use(bodyParser.urlencoded({ extended: false }));
 
 app.use(express.json());
