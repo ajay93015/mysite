@@ -583,6 +583,10 @@ app.get("/notify/:type/:id", (req, res) => {
   console.log(req.params.id); // e.g., "500"
   // res.send('OK');
 });
+app.post('/payment',(req,res)=>{
+  const message = req.body.message;
+  console.log(message);
+})
 
 app.get("/pic", (req, res) => {
   res.render("pic", {
