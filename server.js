@@ -283,7 +283,7 @@ app.get('/payment', (req, res) => {
 <html>
 <head>
     <title>Payment System</title>
-    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-azFeOBgXAGghc8rk3YkcsHZ0sJvA4L4YJylEMKpGmRz+YyOUHz6EmJyyz3RhMiXl" crossorigin="anonymous"></script>
     <style>
         body { font-family: Arial; margin: 40px; background: #f0f0f0; }
         .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
