@@ -9,7 +9,8 @@ const https = require("https");
 const path = require("path");
 const multer = require("multer");
 const axios = require("axios");
-
+const socketIo = require('socket.io');
+const io = socketIo(server);
 const qrcode = require("qrcode");
 const app = express();
 const port = 3000;
@@ -170,8 +171,539 @@ setInterval(() => {
 }, 40000); // every 4 minutes
 
 
+const payDb = new sqlite3.Database('./pay.db');
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'));
+app.set('view engine', 'ejs');
+
+// Initialize payment database with hardcoded schema
+payDb.serialize(() => {
+  payDb.run(`CREATE TABLE IF NOT EXISTS payments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_number TEXT NOT NULL,
+    amount REAL NOT NULL,
+    status TEXT DEFAULT 'pending',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    processed_at DATETIME,
+    txn_id TEXT,
+    message TEXT,
+    discount_applied REAL DEFAULT 0
+  )`);
+  
+  payDb.run(`CREATE TABLE IF NOT EXISTS payment_queue (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_number TEXT NOT NULL,
+    amount REAL NOT NULL,
+    original_amount REAL NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME,
+    status TEXT DEFAULT 'waiting',
+    position INTEGER DEFAULT 0
+  )`);
+});
+
+// Hardcoded in-memory storage
+const paymentQueue = new Map();
+const activeUsers = new Map();
+const processedPayments = new Set();
+
+// Your existing process route (unchanged)
+app.post("/process", (req, res) => {
+  const data = req.body;
+  const accountNumber = req.body.account_number;
+  
+  db.get(
+    `SELECT * FROM acopen WHERE account_number = ?`,
+    [accountNumber],
+    (err, rows) => {
+      if (rows === undefined) {
+        const params = [
+          data.acopen,
+          data.gender + " " + data.full_name,
+          data.account_number,
+          data.cif_number,
+          "",
+        ];
+        
+        db.run(
+          `INSERT INTO reg (date, name, accountno, custid, printeddate) VALUES (?, ?, ?, ?, ?)`,
+          params,
+          function (err) {
+            if (err) {
+              res.status(400).json({ error: err.message });
+              return console.log(err.message);
+            }
+          }
+        );
+        
+        db.run(
+          `INSERT INTO acopen (acopen, gender, relationship_name, full_address, full_address2, City, full_name, cif_number, account_number, adhar_number) 
+          VALUES (?,?,?,?,?,?,?,?,?,?)`,
+          [
+            data.acopen,
+            data.gender,
+            data.relationship_name,
+            data.full_address,
+            data.full_address2,
+            data.City,
+            data.full_name,
+            data.cif_number,
+            data.account_number,
+            data.adhar_number,
+          ],
+          function (err) {
+            if (err) {
+              return console.log(err.message);
+            }
+          }
+        );
+        
+        res.render("process", {
+          data: req.body,
+        });
+      } else {
+        res.redirect(`/passbook/${req.body.account_number}`);
+      }
+    }
+  );
+});
 
 
+// Hardcoded payment form route
+app.get('/payment', (req, res) => {
+  const hardcodedHTML = `
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Payment System</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        body { font-family: Arial; margin: 40px; background: #f0f0f0; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
+        button { background: #007bff; color: white; padding: 15px 30px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; width: 100%; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        .status { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; }
+        .waiting { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .discount { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .expired { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .timer { font-weight: bold; color: #dc3545; }
+        .queue-info { margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Payment Processing System</h2>
+        <form id="paymentForm">
+            <div class="form-group">
+                <label>Account Number:</label>
+                <input type="text" id="accountNumber" required placeholder="Enter account number">
+            </div>
+            <div class="form-group">
+                <label>Amount (₹):</label>
+                <input type="number" id="amount" step="0.01" required placeholder="Enter amount">
+            </div>
+            <button type="submit" id="submitBtn">Submit Payment Request</button>
+        </form>
+        
+        <div id="statusCard" class="status">
+            <div id="statusMessage"></div>
+            <div id="timerDiv" style="margin-top: 10px;"></div>
+        </div>
+        
+        <div class="queue-info">
+            <h4>Queue Status</h4>
+            <div id="queueInfo">No active payments</div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentPaymentId = null;
+        let timerInterval = null;
+        let expiryTime = null;
+
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const accountNumber = document.getElementById('accountNumber').value;
+            const amount = parseFloat(document.getElementById('amount').value);
+            
+            if (!accountNumber || !amount) {
+                alert('Please fill all fields');
+                return;
+            }
+            
+            fetch('/payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ account_number: accountNumber, amount: amount })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentPaymentId = data.payment_id;
+                    showStatus('waiting', 'Payment request submitted. Waiting for processing...');
+                    startTimer();
+                    document.getElementById('submitBtn').disabled = true;
+                    socket.emit('join_payment', { account_number: accountNumber });
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Network error occurred');
+            });
+        });
+
+        function showStatus(type, message) {
+            const statusCard = document.getElementById('statusCard');
+            const statusMessage = document.getElementById('statusMessage');
+            statusCard.className = 'status ' + type;
+            statusMessage.textContent = message;
+            statusCard.style.display = 'block';
+        }
+
+        function startTimer() {
+            expiryTime = new Date(Date.now() + 6 * 60 * 1000); // 6 minutes
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            const now = new Date();
+            const remaining = expiryTime - now;
+            
+            if (remaining <= 0) {
+                clearInterval(timerInterval);
+                showStatus('expired', 'Payment request expired');
+                document.getElementById('timerDiv').innerHTML = '';
+                document.getElementById('submitBtn').disabled = false;
+                return;
+            }
+            
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            document.getElementById('timerDiv').innerHTML = 
+                '<span class="timer">Time remaining: ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds + '</span>';
+        }
+
+        // Socket event listeners
+        socket.on('payment_success', function(data) {
+            if (data.id === currentPaymentId) {
+                clearInterval(timerInterval);
+                showStatus('success', 'Payment processed successfully! Transaction ID: ' + data.txn_id);
+                document.getElementById('timerDiv').innerHTML = '';
+                document.getElementById('submitBtn').disabled = false;
+            }
+        });
+
+        socket.on('payment_discounted', function(data) {
+            if (data.id === currentPaymentId) {
+                showStatus('discount', 'Amount adjusted due to conflict. New amount: ₹' + data.new_amount.toFixed(2) + ' (Original: ₹' + data.original_amount.toFixed(2) + ')');
+            }
+        });
+
+        socket.on('queue_update', function(data) {
+            document.getElementById('queueInfo').innerHTML = 
+                'Active payments in queue: ' + data.count + '<br>' +
+                'Your position: ' + (data.position || 'N/A');
+        });
+
+        // Request queue status every 2 seconds
+        setInterval(function() {
+            socket.emit('request_queue_status');
+        }, 2000);
+    </script>
+</body>
+</html>`;
+  
+  res.send(hardcodedHTML);
+});
+
+// Hardcoded payment processing
+app.post('/payment', (req, res) => {
+  const { account_number, amount } = req.body;
+  
+  if (!account_number || !amount) {
+    return res.status(400).json({ error: 'Account number and amount are required' });
+  }
+  
+  const numAmount = parseFloat(amount);
+  const currentTime = new Date();
+  const expiryTime = new Date(currentTime.getTime() + 6 * 60 * 1000); // 6 minutes
+  
+  // Insert into database
+  payDb.run(
+    `INSERT INTO payment_queue (account_number, amount, original_amount, expires_at) VALUES (?, ?, ?, ?)`,
+    [account_number, numAmount, numAmount, expiryTime.toISOString()],
+    function(err) {
+      if (err) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      const paymentId = this.lastID;
+      
+      // Add to hardcoded memory queue
+      const queueKey = numAmount.toString();
+      if (!paymentQueue.has(queueKey)) {
+        paymentQueue.set(queueKey, []);
+      }
+      
+      const paymentRequest = {
+        id: paymentId,
+        account_number: account_number,
+        amount: numAmount,
+        original_amount: numAmount,
+        created_at: currentTime,
+        expires_at: expiryTime,
+        status: 'waiting'
+      };
+      
+      paymentQueue.get(queueKey).push(paymentRequest);
+      
+      res.json({ 
+        success: true, 
+        payment_id: paymentId,
+        expires_at: expiryTime.toISOString()
+      });
+      
+      // Emit queue update
+      updateQueueStatus();
+    }
+  );
+});
+
+// Hardcoded payment message processing (SMS simulation)
+app.post('/payment', (req, res) => {
+  const message = req.body.message || req.body.sms_message;
+  
+  if (!message) {
+    return res.status(400).json({ error: 'Message is required' });
+  }
+  
+  console.log('Processing payment message:', message);
+  
+  // Hardcoded message parsing
+  const amountRegex = /Rs\.?(\d+\.?\d*)/i;
+  const txnRegex = /(?:Txn|Transaction)\s*(?:ID|Id)?:?\s*(\w+)/i;
+  
+  const amountMatch = message.match(amountRegex);
+  const txnMatch = message.match(txnRegex);
+  
+  if (!amountMatch) {
+    return res.status(400).json({ error: 'Amount not found in message' });
+  }
+  
+  const amount = parseFloat(amountMatch[1]);
+  const txnId = txnMatch ? txnMatch[1] : 'TXN' + Date.now();
+  
+  // Process the payment
+  processHardcodedPayment(amount, txnId, message);
+  
+  res.json({ success: true, amount: amount, txn_id: txnId });
+});
+
+// Hardcoded payment processing function
+function processHardcodedPayment(amount, txnId, message) {
+  const queueKey = amount.toString();
+  const queue = paymentQueue.get(queueKey);
+  
+  if (!queue || queue.length === 0) {
+    console.log('No pending requests for amount:', amount);
+    return;
+  }
+  
+  // Remove expired requests
+  const currentTime = new Date();
+  const validRequests = queue.filter(req => req.expires_at > currentTime && req.status === 'waiting');
+  
+  if (validRequests.length === 0) {
+    paymentQueue.delete(queueKey);
+    console.log('All requests expired for amount:', amount);
+    return;
+  }
+  
+  // Take first valid request
+  const selectedRequest = validRequests[0];
+  
+  // Handle multiple requests with discount
+  if (validRequests.length > 1) {
+    for (let i = 1; i < validRequests.length; i++) {
+      const request = validRequests[i];
+      const discountedAmount = amount - 0.01;
+      
+      // Update request with discount
+      request.amount = discountedAmount;
+      request.status = 'discounted';
+      
+      // Move to discounted queue
+      const discountedKey = discountedAmount.toString();
+      if (!paymentQueue.has(discountedKey)) {
+        paymentQueue.set(discountedKey, []);
+      }
+      paymentQueue.get(discountedKey).push(request);
+      
+      // Update database
+      payDb.run(
+        `UPDATE payment_queue SET amount = ?, status = 'discounted' WHERE id = ?`,
+        [discountedAmount, request.id]
+      );
+      
+      // Notify client
+      io.emit('payment_discounted', {
+        id: request.id,
+        account_number: request.account_number,
+        original_amount: amount,
+        new_amount: discountedAmount
+      });
+    }
+  }
+  
+  // Process selected request
+  selectedRequest.status = 'processed';
+  
+  // Save to payments table
+  payDb.run(
+    `INSERT INTO payments (account_number, amount, status, txn_id, message, processed_at) 
+     VALUES (?, ?, 'success', ?, ?, ?)`,
+    [selectedRequest.account_number, amount, txnId, message, new Date().toISOString()],
+    function(err) {
+      if (err) {
+        console.error('Error saving payment:', err);
+        return;
+      }
+      
+      // Update queue status
+      payDb.run(
+        `UPDATE payment_queue SET status = 'processed' WHERE id = ?`,
+        [selectedRequest.id]
+      );
+      
+      // Remove from memory
+      paymentQueue.set(queueKey, queue.filter(req => req.id !== selectedRequest.id));
+      if (paymentQueue.get(queueKey).length === 0) {
+        paymentQueue.delete(queueKey);
+      }
+      
+      // Add to processed set
+      processedPayments.add(selectedRequest.id);
+      
+      // Notify success
+      io.emit('payment_success', {
+        id: selectedRequest.id,
+        account_number: selectedRequest.account_number,
+        amount: amount,
+        txn_id: txnId
+      });
+      
+      console.log('Payment processed:', selectedRequest.account_number, amount, txnId);
+      updateQueueStatus();
+    }
+  );
+}
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('Client connected:', socket.id);
+  
+  socket.on('join_payment', (data) => {
+    const { account_number } = data;
+    socket.join('payment_' + account_number);
+    activeUsers.set(socket.id, account_number);
+    updateQueueStatus();
+  });
+  
+  socket.on('request_queue_status', () => {
+    updateQueueStatus();
+  });
+  
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+    activeUsers.delete(socket.id);
+  });
+});
+
+// Update queue status function
+function updateQueueStatus() {
+  let totalCount = 0;
+  for (const [amount, requests] of paymentQueue) {
+    totalCount += requests.filter(req => req.status === 'waiting').length;
+  }
+  
+  io.emit('queue_update', { count: totalCount });
+}
+
+// Hardcoded cleanup interval (every 30 seconds)
+setInterval(() => {
+  const currentTime = new Date();
+  
+  // Clean up expired requests
+  for (const [amount, requests] of paymentQueue) {
+    const validRequests = requests.filter(req => {
+      if (req.expires_at <= currentTime && req.status === 'waiting') {
+        req.status = 'expired';
+        // Update database
+        payDb.run(`UPDATE payment_queue SET status = 'expired' WHERE id = ?`, [req.id]);
+        return false;
+      }
+      return true;
+    });
+    
+    if (validRequests.length === 0) {
+      paymentQueue.delete(amount);
+    } else {
+      paymentQueue.set(amount, validRequests);
+    }
+  }
+  
+  updateQueueStatus();
+}, 30000);
+
+// Hardcoded test SMS endpoint
+app.post('/test-sms', (req, res) => {
+  const testMessage = "Airtel Payments Bank a/c is credited with Rs.100.00. Txn ID: 699536637216. Call 180023400 for help";
+  processHardcodedPayment(100.00, "699536637216", testMessage);
+  res.json({ success: true, message: "Test SMS processed" });
+});
+
+// API endpoints
+app.get('/api/queue', (req, res) => {
+  const queueData = [];
+  for (const [amount, requests] of paymentQueue) {
+    queueData.push({
+      amount: parseFloat(amount),
+      count: requests.length,
+      requests: requests.map(req => ({
+        id: req.id,
+        account_number: req.account_number,
+        status: req.status,
+        created_at: req.created_at,
+        expires_at: req.expires_at
+      }))
+    });
+  }
+  res.json(queueData);
+});
+
+app.get('/api/payments', (req, res) => {
+  payDb.all('SELECT * FROM payments ORDER BY created_at DESC LIMIT 20', [], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: err.message });
+    }
+    res.json(rows);
+  });
+});
+
+/*
 app.post("/process", (req, res) => {
   const data = req.body;
 
@@ -235,7 +767,7 @@ app.post("/process", (req, res) => {
     }
   );
 });
-
+*/
 app.post("/passbook", (req, res) => {
   const date = new Date();
   res.render("passbook", {
@@ -583,11 +1115,12 @@ app.get("/notify/:type/:id", (req, res) => {
   console.log(req.params.id); // e.g., "500"
   // res.send('OK');
 });
+/*
 app.post('/payment',(req,res)=>{
   const message = req.body.message;
   console.log(message);
 })
-
+*/
 app.get("/pic", (req, res) => {
   res.render("pic", {
     filename: "na",
