@@ -947,7 +947,10 @@ app.post("/pic", upload.single("photo"), (req, res) => {
     });
   });
 });
-
+module.exports = {
+  msgdb,
+  dbHelpers
+};
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
