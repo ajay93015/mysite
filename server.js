@@ -279,7 +279,7 @@ const msgdb = new sqlite3.Database("msgDb", (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
   } else {
-    console.log('Connected to SQLite database:', dbPath);
+    //console.log('Connected to SQLite database:', dbPath);
   }
 });
 
