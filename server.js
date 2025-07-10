@@ -11,7 +11,7 @@ const path = require("path");
 const multer = require("multer");
 const axios = require("axios");
 const socketIo = require('socket.io');
-
+const QRCode‎ = require("qrcode");
 const qrcode = require("qrcode");
 const app = express();
 const port = 3000;
