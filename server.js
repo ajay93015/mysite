@@ -183,6 +183,7 @@ setInterval(() => {
 */
 
 const {
+  adb,
   createPayment,
   markPaymentSuccess,
   expireOldPayments,
