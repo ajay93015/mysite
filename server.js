@@ -54,7 +54,13 @@ user.run(`CREATE TABLE IF NOT EXISTS acopen (
   username TEXT
   password TEXT
 )`);
-
+const msgdb = new sqlite3.Database("msgDb", (err) => {
+  if (err) {
+    console.error('Error opening database:', err.message);
+  } else {
+    //console.log('Connected to SQLite database:', dbPath);
+  }
+});
 const ent = new sqlite3.Database("entry.db");
 ent.run(`CREATE TABLE IF NOT EXISTS reg (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -438,13 +444,7 @@ app.post("/process", (req, res) => {
   );
 });
 
-const msgdb = new sqlite3.Database("msgDb", (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
-  } else {
-    //console.log('Connected to SQLite database:', dbPath);
-  }
-});
+
 
 // Create tables and indexes
 msgdb.serialize(() => {
