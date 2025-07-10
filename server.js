@@ -171,6 +171,7 @@ if (istHour >= 9 && istHour < 19) {
 }
 */
 // Ping every 4 minutes (less than Glitch's 5-minute sleep)
+/* ping okayyy 4min
 setInterval(() => {
   sites.forEach((site) => {
     axios
@@ -179,7 +180,7 @@ setInterval(() => {
       .catch((err) => console.log(`❌ Error pinging ${site}:`, err.message));
   });
 }, 40000); // every 4 minutes
-
+*/
 
 const payDb = new sqlite3.Database('./pay.db');
 
