@@ -222,6 +222,161 @@ app.get('/form',(req,res)=>{
   </br><input type="submit"></form>
   `);
 })
+app.post('/payment', (req, res) => {
+  const message = req.body.message;
+  console.log('Received SMS:', message);
+  
+  const amountMatch = message.match(/INR\s+(\d+)\.(\d{2})?/i);
+  if (!amountMatch) {
+    console.log('Invalid message format:', message);
+    return res.status(400).send("Invalid message format");
+  }
+  
+  const amount = parseInt(amountMatch[1]);
+  console.log('Extracted amount:', amount);
+  
+  // Use transaction to prevent race conditions
+  msgdb.serialize(() => {
+    msgdb.get(`
+      SELECT * FROM payments 
+      WHERE amount = ? AND status = 'pending'
+      ORDER BY created_at ASC LIMIT 1
+    `, [amount], (err, row) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).send('Database error');
+      }
+      
+      if (row) {
+        console.log('Found pending payment:', row.id);
+        
+        msgdb.run(`
+          UPDATE payments 
+          SET status = 'success', verified_at = CURRENT_TIMESTAMP 
+          WHERE id = ? AND status = 'pending'
+        `, [row.id], function(err) {
+          if (err) {
+            console.error('Update error:', err);
+            return res.status(500).send('Update failed');
+          }
+          
+          if (this.changes > 0) {
+            console.log('Payment marked as success:', row.id);
+            res.status(200).send('Payment processed successfully');
+          } else {
+            console.log('No rows updated - payment may have been processed already');
+            res.status(200).send('Payment already processed');
+          }
+        });
+      } else {
+        console.log('No pending payment found for amount:', amount);
+        res.status(200).send('No matching payment found');
+      }
+    });
+  });
+});
+
+// Improved form submission with better duplicate handling
+app.post('/form', (req, res) => {
+  const { qr_id, session_id, amount } = req.body;
+  
+  // Validate inputs
+  if (!qr_id || !session_id || !amount) {
+    return res.status(400).send('Missing required fields');
+  }
+  
+  const numericAmount = parseInt(amount);
+  if (isNaN(numericAmount) || numericAmount <= 0) {
+    return res.status(400).send('Invalid amount');
+  }
+  
+  msgdb.get("SELECT * FROM payments WHERE amount = ? AND status = 'pending'", [numericAmount], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).send('Database error');
+    }
+    
+    if (row) {
+      // Instead of delaying, add a unique identifier or timestamp
+      const uniqueAmount = numericAmount + Math.floor(Date.now() / 1000) % 100; // Add timestamp seconds
+      console.log(`Duplicate amount ${numericAmount} found, using ${uniqueAmount}`);
+      
+      msgdb.run(`INSERT INTO payments (qr_id, session_id, amount, original_amount) VALUES (?, ?, ?, ?)`,
+        [qr_id, session_id, uniqueAmount, numericAmount], function(err) {
+          if (err) {
+            console.error('Insert error:', err);
+            return res.status(500).send('Database error');
+          }
+          console.log('Payment created with ID:', this.lastID);
+          res.redirect(`/form-waiting/${this.lastID}`);
+        });
+    } else {
+      // No conflict, proceed with original amount
+      msgdb.run(`INSERT INTO payments (qr_id, session_id, amount) VALUES (?, ?, ?)`,
+        [qr_id, session_id, numericAmount], function(err) {
+          if (err) {
+            console.error('Insert error:', err);
+            return res.status(500).send('Database error');
+          }
+          console.log('Payment created with ID:', this.lastID);
+          res.redirect(`/form-waiting/${this.lastID}`);
+        });
+    }
+  });
+});
+
+// Add a polling endpoint for the waiting page
+app.get('/check-payment/:id', (req, res) => {
+  const id = req.params.id;
+  
+  msgdb.get("SELECT * FROM payments WHERE id = ?", [id], (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (!row) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
+    
+    res.json({
+      id: row.id,
+      status: row.status,
+      amount: row.amount,
+      created_at: row.created_at,
+      verified_at: row.verified_at
+    });
+  });
+});
+
+// Enhanced waiting page route
+app.get('/form-waiting/:id', (req, res) => {
+  const id = req.params.id;
+  
+  msgdb.get("SELECT * FROM payments WHERE id = ?", [id], (err, row) => {
+    if (err) {
+      console.error('Database error:', err);
+      return res.status(500).send('Database error');
+    }
+    
+    if (!row) {
+      console.log('Payment not found:', id);
+      return res.redirect('/failure');
+    }
+    
+    if (row.status === 'success') {
+      console.log('Payment already successful:', id);
+      return res.redirect(`/success/${id}`);
+    } else if (row.status === 'pending') {
+      console.log('Payment pending:', id);
+      return res.render('form-waiting', { 
+        session_id: row.session_id, 
+        payment_id: row.id,
+        amount: row.amount 
+      });
+    } else {
+      console.log('Payment failed:', id);
+      return res.redirect('/failure');
+    }
 // Your existing process route (unchanged)
 app.post("/process", (req, res) => {
   const data = req.body;
@@ -487,6 +642,7 @@ const dbHelpers = {
     `, callback);
   }
 };
+
 /*
 app.post("/process", (req, res) => {
   const data = req.body;
