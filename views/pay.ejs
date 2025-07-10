@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>UPI QR Payment</title>
+</head>
+<body>
+  <h2>Pay ₹<%= amount %> via UPI</h2>
+  <img src="<%= qrImage %>" alt="UPI QR Code" />
+  <p>Scan using any UPI app (GPay, PhonePe, Paytm)</p>
+
+  <h3 id="status">⏳ Waiting for payment...</h3>
+
+  <script>
+    const amount = <%= amount %>;
+    const checkStatus = () => {
+      fetch(`/status/${amount}`)
+        .then(res => res.json())
+        .then(data => {
+          const statusEl = document.getElementById("status");
+          if (data.status === "success") {
+            statusEl.textContent = "✅ Payment Successful!";
+            statusEl.style.color = "green";
+          } else if (data.status === "failed") {
+            statusEl.textContent = "❌ Payment Failed (Timed Out)";
+            statusEl.style.color = "red";
+          } else {
+            setTimeout(checkStatus, 3000);
+          }
+        });
+    };
+    checkStatus();
+  </script>
+</body>
+</html>
