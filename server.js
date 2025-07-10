@@ -214,6 +214,14 @@ const paymentQueue = new Map();
 const activeUsers = new Map();
 const processedPayments = new Set();
 
+
+app.get('/form',(req,res)=>{
+  //qr_id, session_id, amount
+  app.end(`<html><form action="/form" method="post">
+  <input name="qr_id" value="ajay@ajay"> </br><input name="session_id" value="random"></br> <input name="amount" value="2.00">
+  </br><input type="submit"></form>
+  `);
+})
 // Your existing process route (unchanged)
 app.post("/process", (req, res) => {
   const data = req.body;
