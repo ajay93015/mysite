@@ -182,209 +182,50 @@ setInterval(() => {
 }, 40000); // every 4 minutes
 */
 
-const payDb = new sqlite3.Database('./pay.db');
+const {
+  createPayment,
+  markPaymentSuccess,
+  expireOldPayments,
+  getStatus
+} = require('./mgdb');
 
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
-app.set('view engine', 'ejs');
 
-// Initialize payment database with hardcoded schema
-payDb.serialize(() => {
-  payDb.run(`CREATE TABLE IF NOT EXISTS payments (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    account_number TEXT NOT NULL,
-    amount REAL NOT NULL,
-    status TEXT DEFAULT 'pending',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    processed_at DATETIME,
-    txn_id TEXT,
-    message TEXT,
-    discount_applied REAL DEFAULT 0
-  )`);
-  
-  payDb.run(`CREATE TABLE IF NOT EXISTS payment_queue (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    account_number TEXT NOT NULL,
-    amount REAL NOT NULL,
-    original_amount REAL NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    expires_at DATETIME,
-    status TEXT DEFAULT 'waiting',
-    position INTEGER DEFAULT 0
-  )`);
+
+// UPI QR Generator Route
+app.get('/pay/:amount', async (req, res) => {
+  const amount = parseFloat(req.params.amount);
+  await createPayment(amount);
+
+  const upiId = '9301751642ajay@ybl'; // Replace with your real UPI ID
+  const upiUrl = `upi://pay?pa=${upiId}&pn=Ajay%20Vishwakarma&am=${amount}&cu=INR`;
+
+  const qrImage = await QRCode.toDataURL(upiUrl);
+
+  res.render('pay', { amount, qrImage });
+});
+// Receive SMS Payment Info
+
+app.post('/payment', async (req, res) => {
+  const msg = req.body.message;
+  const match = msg.match(/Rs\.([\d.]+).*Txn ID[:\s]+(\d+)/i);
+  if (!match) return res.send(" Invalid message format");
+
+  const amount = parseFloat(match[1]);
+  const txnId = match[2];
+
+  await markPaymentSuccess(amount, txnId);
+  res.send(" Payment updated");
 });
 
-// Hardcoded in-memory storage
-const paymentQueue = new Map();
-const activeUsers = new Map();
-const processedPayments = new Set();
-
-
-app.get('/form',(req,res)=>{
-  //qr_id, session_id, amount
-  res.end(`<html><form action="/form" method="post">
-  <input name="qr_id" value="ajay@ajay"> </br><input name="session_id" value="random"></br> <input name="amount" value="2.00">
-  </br><input type="submit"></form>
-  `);
-})
-app.post('/payment', (req, res) => {
-  const message = req.body.message;
-  console.log('Received SMS:', message);
-  
-  const amountMatch = message.match(/INR\s+(\d+)\.(\d{2})?/i);
-  if (!amountMatch) {
-    console.log('Invalid message format:', message);
-    return res.status(400).send("Invalid message format");
-  }
-  
-  const amount = parseInt(amountMatch[1]);
-  console.log('Extracted amount:', amount);
-  
-  // Use transaction to prevent race conditions
-  msgdb.serialize(() => {
-    msgdb.get(`
-      SELECT * FROM payments 
-      WHERE amount = ? AND status = 'pending'
-      ORDER BY created_at ASC LIMIT 1
-    `, [amount], (err, row) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).send('Database error');
-      }
-      
-      if (row) {
-        console.log('Found pending payment:', row.id);
-        
-        msgdb.run(`
-          UPDATE payments 
-          SET status = 'success', verified_at = CURRENT_TIMESTAMP 
-          WHERE id = ? AND status = 'pending'
-        `, [row.id], function(err) {
-          if (err) {
-            console.error('Update error:', err);
-            return res.status(500).send('Update failed');
-          }
-          
-          if (this.changes > 0) {
-            console.log('Payment marked as success:', row.id);
-            res.status(200).send('Payment processed successfully');
-          } else {
-            console.log('No rows updated - payment may have been processed already');
-            res.status(200).send('Payment already processed');
-          }
-        });
-      } else {
-        console.log('No pending payment found for amount:', amount);
-        res.status(200).send('No matching payment found');
-      }
-    });
+// Check Status
+app.get('/status/:amount', (req, res) => {
+  const amount = parseFloat(req.params.amount);
+  expireOldPayments();
+  getStatus(amount, (err, row) => {
+    if (err || !row) return res.send({ status: 'pending' });
+    res.send({ status: row.status });
   });
 });
-
-// Improved form submission with better duplicate handling
-app.post('/form', (req, res) => {
-  const { qr_id, session_id, amount } = req.body;
-  
-  // Validate inputs
-  if (!qr_id || !session_id || !amount) {
-    return res.status(400).send('Missing required fields');
-  }
-  
-  const numericAmount = parseInt(amount);
-  if (isNaN(numericAmount) || numericAmount <= 0) {
-    return res.status(400).send('Invalid amount');
-  }
-  
-  msgdb.get("SELECT * FROM payments WHERE amount = ? AND status = 'pending'", [numericAmount], (err, row) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).send('Database error');
-    }
-    
-    if (row) {
-      // Instead of delaying, add a unique identifier or timestamp
-      const uniqueAmount = numericAmount + Math.floor(Date.now() / 1000) % 100; // Add timestamp seconds
-      console.log(`Duplicate amount ${numericAmount} found, using ${uniqueAmount}`);
-      
-      msgdb.run(`INSERT INTO payments (qr_id, session_id, amount, original_amount) VALUES (?, ?, ?, ?)`,
-        [qr_id, session_id, uniqueAmount, numericAmount], function(err) {
-          if (err) {
-            console.error('Insert error:', err);
-            return res.status(500).send('Database error');
-          }
-          console.log('Payment created with ID:', this.lastID);
-          res.redirect(`/form-waiting/${this.lastID}`);
-        });
-    } else {
-      // No conflict, proceed with original amount
-      msgdb.run(`INSERT INTO payments (qr_id, session_id, amount) VALUES (?, ?, ?)`,
-        [qr_id, session_id, numericAmount], function(err) {
-          if (err) {
-            console.error('Insert error:', err);
-            return res.status(500).send('Database error');
-          }
-          console.log('Payment created with ID:', this.lastID);
-          res.redirect(`/form-waiting/${this.lastID}`);
-        });
-    }
-  });
-});
-
-// Add a polling endpoint for the waiting page
-app.get('/check-payment/:id', (req, res) => {
-  const id = req.params.id;
-  
-  msgdb.get("SELECT * FROM payments WHERE id = ?", [id], (err, row) => {
-    if (err) {
-      return res.status(500).json({ error: 'Database error' });
-    }
-    
-    if (!row) {
-      return res.status(404).json({ error: 'Payment not found' });
-    }
-    
-    res.json({
-      id: row.id,
-      status: row.status,
-      amount: row.amount,
-      created_at: row.created_at,
-      verified_at: row.verified_at
-    });
-  });
-});
-
-// Enhanced waiting page route
-app.get('/form-waiting/:id', (req, res) => {
-  const id = req.params.id;
-  
-  msgdb.get("SELECT * FROM payments WHERE id = ?", [id], (err, row) => {
-    if (err) {
-      console.error('Database error:', err);
-      return res.status(500).send('Database error');
-    }
-    
-    if (!row) {
-      console.log('Payment not found:', id);
-      return res.redirect('/failure');
-    }
-    
-    if (row.status === 'success') {
-      console.log('Payment already successful:', id);
-      return res.redirect(`/success/${id}`);
-    } else if (row.status === 'pending') {
-      console.log('Payment pending:', id);
-      return res.render('form-waiting', { 
-        session_id: row.session_id, 
-        payment_id: row.id,
-        amount: row.amount 
-      });
-    } else {
-      console.log('Payment failed:', id);
-      return res.redirect('/failure');
-    }
-// Your existing process route (unchanged)
 app.post("/process", (req, res) => {
   const data = req.body;
   const accountNumber = req.body.account_number;
@@ -446,205 +287,6 @@ app.post("/process", (req, res) => {
 });
 
 
-
-// Create tables and indexes
-msgdb.serialize(() => {
-  // Create payments table
-  msgdb.run(`
-    CREATE TABLE IF NOT EXISTS payments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      qr_id TEXT NOT NULL,
-      session_id TEXT NOT NULL,
-      amount INTEGER NOT NULL,
-      original_amount INTEGER,
-      status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'success', 'failed')),
-      unique_ref TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      verified_at DATETIME,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      notes TEXT
-    )
-  `, (err) => {
-    if (err) {
-      console.error('Error creating payments table:', err.message);
-    } else {
-      console.log('Payments table created/verified');
-    }
-  });
-
-  // Create indexes for better performance
-  msgdb.run(`
-    CREATE INDEX IF NOT EXISTS idx_payments_amount_status 
-    ON payments(amount, status)
-  `, (err) => {
-    if (err) {
-      console.error('Error creating amount_status index:', err.message);
-    } else {
-      console.log('Amount-Status index created');
-    }
-  });
-   });
-});
-
-  msgdb.run(`
-    CREATE INDEX IF NOT EXISTS idx_payments_status 
-    ON payments(status)
-  `, (err) => {
-    if (err) {
-      console.error('Error creating status index:', err.message);
-    } else {
-      console.log('Status index created');
-    }
-  });
-
-  msgdb.run(`
-    CREATE INDEX IF NOT EXISTS idx_payments_session_id 
-    ON payments(session_id)
-  `, (err) => {
-    if (err) {
-      console.error('Error creating session_id index:', err.message);
-    } else {
-      console.log('Session ID index created');
-    }
-  });
-
-  msgdb.run(`
-    CREATE INDEX IF NOT EXISTS idx_payments_created_at 
-    ON payments(created_at)
-  `, (err) => {
-    if (err) {
-      console.error('Error creating created_at index:', err.message);
-    } else {
-      console.log('Created At index created');
-    }
-  });
-
-  // Create trigger to update updated_at timestamp
-  msgdb.run(`
-    CREATE TRIGGER IF NOT EXISTS update_payments_timestamp 
-    AFTER UPDATE ON payments
-    BEGIN
-      UPDATE payments SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-    END
-  `, (err) => {
-    if (err) {
-      console.error('Error creating update trigger:', err.message);
-    } else {
-      console.log('Update timestamp trigger created');
-    }
-  });
-
-  // Optional: Create SMS logs table for debugging
-  msgdb.run(`
-    CREATE TABLE IF NOT EXISTS sms_logs (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      raw_message TEXT NOT NULL,
-      extracted_amount INTEGER,
-      matched_payment_id INTEGER,
-      processed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      status TEXT DEFAULT 'processed' CHECK(status IN ('processed', 'ignored', 'error')),
-      error_message TEXT,
-      FOREIGN KEY (matched_payment_id) REFERENCES payments(id)
-    )
-  `, (err) => {
-    if (err) {
-      console.error('Error creating sms_logs table:', err.message);
-    } else {
-      console.log('SMS logs table created/verified');
-    }
-  });
-
-  // Create index for SMS logs
-  msgdb.run(`
-    CREATE INDEX IF NOT EXISTS idx_sms_logs_processed_at 
-    ON sms_logs(processed_at)
-  `, (err) => {
-    if (err) {
-      console.error('Error creating sms_logs index:', err.message);
-    } else {
-      console.log('SMS logs index created');
-    }
-  });
-
-  // Insert some sample data for testing (optional)
-  msgdb.run(`
-    INSERT OR IGNORE INTO payments (qr_id, session_id, amount, status) 
-    VALUES ('QR001', 'sess_123', 100, 'pending')
-  `, (err) => {
-    if (err) {
-      console.error('Error inserting sample data:', err.message);
-    } else {
-      console.log('Sample data inserted (if not exists)');
-    }
-  });
-});
-
-// Database helper functions
-const dbHelpers = {
-  // Get all pending payments
-  getPendingPayments: (callback) => {
-    msgdb.all(`
-      SELECT * FROM payments 
-      WHERE status = 'pending' 
-      ORDER BY created_at ASC
-    `, callback);
-  },
-
-  // Get payment by ID
-  getPaymentById: (id, callback) => {
-    msgdb.get(`
-      SELECT * FROM payments WHERE id = ?
-    `, [id], callback);
-  },
-
-  // Get payments by amount and status
-  getPaymentsByAmount: (amount, status, callback) => {
-    msgdb.all(`
-      SELECT * FROM payments 
-      WHERE amount = ? AND status = ? 
-      ORDER BY created_at ASC
-    `, [amount, status], callback);
-  },
-
-  // Update payment status
-  updatePaymentStatus: (id, status, callback) => {
-    msgdb.run(`
-      UPDATE payments 
-      SET status = ?, verified_at = CURRENT_TIMESTAMP 
-      WHERE id = ?
-    `, [status, id], callback);
-  },
-
-  // Log SMS message
-  logSmsMessage: (message, amount, paymentId, status, errorMessage, callback) => {
-    msgdb.run(`
-      INSERT INTO sms_logs (raw_message, extracted_amount, matched_payment_id, status, error_message)
-      VALUES (?, ?, ?, ?, ?)
-    `, [message, amount, paymentId, status, errorMessage], callback);
-  },
-
-  // Clean up old records (optional maintenance)
-  cleanupOldRecords: (daysOld = 30, callback) => {
-    msgdb.run(`
-      DELETE FROM payments 
-      WHERE created_at < datetime('now', '-${daysOld} days')
-      AND status IN ('success', 'failed')
-    `, callback);
-  },
-
-  // Get payment statistics
-  getPaymentStats: (callback) => {
-    msgdb.get(`
-      SELECT 
-        COUNT(*) as total_payments,
-        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_payments,
-        COUNT(CASE WHEN status = 'success' THEN 1 END) as successful_payments,
-        COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_payments,
-        SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END) as total_successful_amount
-      FROM payments
-    `, callback);
-  }
-};
 
 /*
 app.post("/process", (req, res) => {
@@ -1114,10 +756,7 @@ app.post("/pic", upload.single("photo"), (req, res) => {
     });
   });
 });
-module.exports = {
-  msgdb,
-  dbHelpers
-};
+
 // Start the server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
