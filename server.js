@@ -482,6 +482,8 @@ msgdb.serialize(() => {
       console.log('Amount-Status index created');
     }
   });
+   });
+});
 
   msgdb.run(`
     CREATE INDEX IF NOT EXISTS idx_payments_status 
