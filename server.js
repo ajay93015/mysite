@@ -275,438 +275,210 @@ app.post("/process", (req, res) => {
   );
 });
 
-
-// Hardcoded payment form route
-app.get('/payment', (req, res) => {
-  const hardcodedHTML = `
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Payment System</title>
-    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js" integrity="sha384-azFeOBgXAGghc8rk3YkcsHZ0sJvA4L4YJylEMKpGmRz+YyOUHz6EmJyyz3RhMiXl" crossorigin="anonymous"></script>
-    <style>
-        body { font-family: Arial; margin: 40px; background: #f0f0f0; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; }
-        .form-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 16px; }
-        button { background: #007bff; color: white; padding: 15px 30px; border: none; border-radius: 5px; font-size: 16px; cursor: pointer; width: 100%; }
-        button:hover { background: #0056b3; }
-        button:disabled { background: #ccc; cursor: not-allowed; }
-        .status { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; }
-        .waiting { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
-        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .discount { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .expired { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .timer { font-weight: bold; color: #dc3545; }
-        .queue-info { margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 5px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>Payment Processing System</h2>
-        <form id="paymentForm">
-            <div class="form-group">
-                <label>Account Number:</label>
-                <input type="text" id="accountNumber" required placeholder="Enter account number">
-            </div>
-            <div class="form-group">
-                <label>Amount (₹):</label>
-                <input type="number" id="amount" step="0.01" required placeholder="Enter amount">
-            </div>
-            <button type="submit" id="submitBtn">Submit Payment Request</button>
-        </form>
-        
-        <div id="statusCard" class="status">
-            <div id="statusMessage"></div>
-            <div id="timerDiv" style="margin-top: 10px;"></div>
-        </div>
-        
-        <div class="queue-info">
-            <h4>Queue Status</h4>
-            <div id="queueInfo">No active payments</div>
-        </div>
-    </div>
-
-    <script>
-        const socket = io();
-        let currentPaymentId = null;
-        let timerInterval = null;
-        let expiryTime = null;
-
-        document.getElementById('paymentForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const accountNumber = document.getElementById('accountNumber').value;
-            const amount = parseFloat(document.getElementById('amount').value);
-            
-            if (!accountNumber || !amount) {
-                alert('Please fill all fields');
-                return;
-            }
-            
-            fetch('/payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ account_number: accountNumber, amount: amount })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    currentPaymentId = data.payment_id;
-                    showStatus('waiting', 'Payment request submitted. Waiting for processing...');
-                    startTimer();
-                    document.getElementById('submitBtn').disabled = true;
-                    socket.emit('join_payment', { account_number: accountNumber });
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Network error occurred');
-            });
-        });
-
-        function showStatus(type, message) {
-            const statusCard = document.getElementById('statusCard');
-            const statusMessage = document.getElementById('statusMessage');
-            statusCard.className = 'status ' + type;
-            statusMessage.textContent = message;
-            statusCard.style.display = 'block';
-        }
-
-        function startTimer() {
-            expiryTime = new Date(Date.now() + 6 * 60 * 1000); // 6 minutes
-            updateTimer();
-            timerInterval = setInterval(updateTimer, 1000);
-        }
-
-        function updateTimer() {
-            const now = new Date();
-            const remaining = expiryTime - now;
-            
-            if (remaining <= 0) {
-                clearInterval(timerInterval);
-                showStatus('expired', 'Payment request expired');
-                document.getElementById('timerDiv').innerHTML = '';
-                document.getElementById('submitBtn').disabled = false;
-                return;
-            }
-            
-            const minutes = Math.floor(remaining / 60000);
-            const seconds = Math.floor((remaining % 60000) / 1000);
-            document.getElementById('timerDiv').innerHTML = 
-                '<span class="timer">Time remaining: ' + minutes + ':' + (seconds < 10 ? '0' : '') + seconds + '</span>';
-        }
-
-        // Socket event listeners
-        socket.on('payment_success', function(data) {
-            if (data.id === currentPaymentId) {
-                clearInterval(timerInterval);
-                showStatus('success', 'Payment processed successfully! Transaction ID: ' + data.txn_id);
-                document.getElementById('timerDiv').innerHTML = '';
-                document.getElementById('submitBtn').disabled = false;
-            }
-        });
-
-        socket.on('payment_discounted', function(data) {
-            if (data.id === currentPaymentId) {
-                showStatus('discount', 'Amount adjusted due to conflict. New amount: ₹' + data.new_amount.toFixed(2) + ' (Original: ₹' + data.original_amount.toFixed(2) + ')');
-            }
-        });
-
-        socket.on('queue_update', function(data) {
-            document.getElementById('queueInfo').innerHTML = 
-                'Active payments in queue: ' + data.count + '<br>' +
-                'Your position: ' + (data.position || 'N/A');
-        });
-
-        // Request queue status every 2 seconds
-        setInterval(function() {
-            socket.emit('request_queue_status');
-        }, 2000);
-    </script>
-</body>
-</html>`;
-  
-  res.send(hardcodedHTML);
+const msgdb = new sqlite3.Database("msgDb", (err) => {
+  if (err) {
+    console.error('Error opening database:', err.message);
+  } else {
+    console.log('Connected to SQLite database:', dbPath);
+  }
 });
 
-// Hardcoded payment processing
-app.post('/payment', (req, res) => {
-  const { account_number, amount } = req.body;
-  
-  if (!account_number || !amount) {
-    return res.status(400).json({ error: 'Account number and amount are required' });
-  }
-  
-  const numAmount = parseFloat(amount);
-  const currentTime = new Date();
-  const expiryTime = new Date(currentTime.getTime() + 6 * 60 * 1000); // 6 minutes
-  
-  // Insert into database
-  payDb.run(
-    `INSERT INTO payment_queue (account_number, amount, original_amount, expires_at) VALUES (?, ?, ?, ?)`,
-    [account_number, numAmount, numAmount, expiryTime.toISOString()],
-    function(err) {
-      if (err) {
-        return res.status(500).json({ error: 'Database error' });
-      }
-      
-      const paymentId = this.lastID;
-      
-      // Add to hardcoded memory queue
-      const queueKey = numAmount.toString();
-      if (!paymentQueue.has(queueKey)) {
-        paymentQueue.set(queueKey, []);
-      }
-      
-      const paymentRequest = {
-        id: paymentId,
-        account_number: account_number,
-        amount: numAmount,
-        original_amount: numAmount,
-        created_at: currentTime,
-        expires_at: expiryTime,
-        status: 'waiting'
-      };
-      
-      paymentQueue.get(queueKey).push(paymentRequest);
-      
-      res.json({ 
-        success: true, 
-        payment_id: paymentId,
-        expires_at: expiryTime.toISOString()
-      });
-      
-      // Emit queue update
-      updateQueueStatus();
-    }
-  );
-});
-
-// Hardcoded payment message processing (SMS simulation)
-app.post('/payment', (req, res) => {
-  const message = req.body.message || req.body.sms_message;
-  
-  if (!message) {
-    return res.status(400).json({ error: 'Message is required' });
-  }
-  
-  console.log('Processing payment message:', message);
-  
-  // Hardcoded message parsing
-  const amountRegex = /Rs\.?(\d+\.?\d*)/i;
-  const txnRegex = /(?:Txn|Transaction)\s*(?:ID|Id)?:?\s*(\w+)/i;
-  
-  const amountMatch = message.match(amountRegex);
-  const txnMatch = message.match(txnRegex);
-  
-  if (!amountMatch) {
-    return res.status(400).json({ error: 'Amount not found in message' });
-  }
-  
-  const amount = parseFloat(amountMatch[1]);
-  const txnId = txnMatch ? txnMatch[1] : 'TXN' + Date.now();
-  
-  // Process the payment
-  processHardcodedPayment(amount, txnId, message);
-  
-  res.json({ success: true, amount: amount, txn_id: txnId });
-});
-
-// Hardcoded payment processing function
-function processHardcodedPayment(amount, txnId, message) {
-  const queueKey = amount.toString();
-  const queue = paymentQueue.get(queueKey);
-  
-  if (!queue || queue.length === 0) {
-    console.log('No pending requests for amount:', amount);
-    return;
-  }
-  
-  // Remove expired requests
-  const currentTime = new Date();
-  const validRequests = queue.filter(req => req.expires_at > currentTime && req.status === 'waiting');
-  
-  if (validRequests.length === 0) {
-    paymentQueue.delete(queueKey);
-    console.log('All requests expired for amount:', amount);
-    return;
-  }
-  
-  // Take first valid request
-  const selectedRequest = validRequests[0];
-  
-  // Handle multiple requests with discount
-  if (validRequests.length > 1) {
-    for (let i = 1; i < validRequests.length; i++) {
-      const request = validRequests[i];
-      const discountedAmount = amount - 0.01;
-      
-      // Update request with discount
-      request.amount = discountedAmount;
-      request.status = 'discounted';
-      
-      // Move to discounted queue
-      const discountedKey = discountedAmount.toString();
-      if (!paymentQueue.has(discountedKey)) {
-        paymentQueue.set(discountedKey, []);
-      }
-      paymentQueue.get(discountedKey).push(request);
-      
-      // Update database
-      payDb.run(
-        `UPDATE payment_queue SET amount = ?, status = 'discounted' WHERE id = ?`,
-        [discountedAmount, request.id]
-      );
-      
-      // Notify client
-      io.emit('payment_discounted', {
-        id: request.id,
-        account_number: request.account_number,
-        original_amount: amount,
-        new_amount: discountedAmount
-      });
-    }
-  }
-  
-  // Process selected request
-  selectedRequest.status = 'processed';
-  
-  // Save to payments table
-  payDb.run(
-    `INSERT INTO payments (account_number, amount, status, txn_id, message, processed_at) 
-     VALUES (?, ?, 'success', ?, ?, ?)`,
-    [selectedRequest.account_number, amount, txnId, message, new Date().toISOString()],
-    function(err) {
-      if (err) {
-        console.error('Error saving payment:', err);
-        return;
-      }
-      
-      // Update queue status
-      payDb.run(
-        `UPDATE payment_queue SET status = 'processed' WHERE id = ?`,
-        [selectedRequest.id]
-      );
-      
-      // Remove from memory
-      paymentQueue.set(queueKey, queue.filter(req => req.id !== selectedRequest.id));
-      if (paymentQueue.get(queueKey).length === 0) {
-        paymentQueue.delete(queueKey);
-      }
-      
-      // Add to processed set
-      processedPayments.add(selectedRequest.id);
-      
-      // Notify success
-      io.emit('payment_success', {
-        id: selectedRequest.id,
-        account_number: selectedRequest.account_number,
-        amount: amount,
-        txn_id: txnId
-      });
-      
-      console.log('Payment processed:', selectedRequest.account_number, amount, txnId);
-      updateQueueStatus();
-    }
-  );
-}
-
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log('Client connected:', socket.id);
-  
-  socket.on('join_payment', (data) => {
-    const { account_number } = data;
-    socket.join('payment_' + account_number);
-    activeUsers.set(socket.id, account_number);
-    updateQueueStatus();
-  });
-  
-  socket.on('request_queue_status', () => {
-    updateQueueStatus();
-  });
-  
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-    activeUsers.delete(socket.id);
-  });
-});
-
-// Update queue status function
-function updateQueueStatus() {
-  let totalCount = 0;
-  for (const [amount, requests] of paymentQueue) {
-    totalCount += requests.filter(req => req.status === 'waiting').length;
-  }
-  
-  io.emit('queue_update', { count: totalCount });
-}
-
-// Hardcoded cleanup interval (every 30 seconds)
-setInterval(() => {
-  const currentTime = new Date();
-  
-  // Clean up expired requests
-  for (const [amount, requests] of paymentQueue) {
-    const validRequests = requests.filter(req => {
-      if (req.expires_at <= currentTime && req.status === 'waiting') {
-        req.status = 'expired';
-        // Update database
-        payDb.run(`UPDATE payment_queue SET status = 'expired' WHERE id = ?`, [req.id]);
-        return false;
-      }
-      return true;
-    });
-    
-    if (validRequests.length === 0) {
-      paymentQueue.delete(amount);
-    } else {
-      paymentQueue.set(amount, validRequests);
-    }
-  }
-  
-  updateQueueStatus();
-}, 30000);
-
-// Hardcoded test SMS endpoint
-app.post('/test-sms', (req, res) => {
-  const testMessage = "Airtel Payments Bank a/c is credited with Rs.100.00. Txn ID: 699536637216. Call 180023400 for help";
-  processHardcodedPayment(100.00, "699536637216", testMessage);
-  res.json({ success: true, message: "Test SMS processed" });
-});
-
-// API endpoints
-app.get('/api/queue', (req, res) => {
-  const queueData = [];
-  for (const [amount, requests] of paymentQueue) {
-    queueData.push({
-      amount: parseFloat(amount),
-      count: requests.length,
-      requests: requests.map(req => ({
-        id: req.id,
-        account_number: req.account_number,
-        status: req.status,
-        created_at: req.created_at,
-        expires_at: req.expires_at
-      }))
-    });
-  }
-  res.json(queueData);
-});
-
-app.get('/api/payments', (req, res) => {
-  payDb.all('SELECT * FROM payments ORDER BY created_at DESC LIMIT 20', [], (err, rows) => {
+// Create tables and indexes
+msgdb.serialize(() => {
+  // Create payments table
+  msgdb.run(`
+    CREATE TABLE IF NOT EXISTS payments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      qr_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      original_amount INTEGER,
+      status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'success', 'failed')),
+      unique_ref TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      verified_at DATETIME,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      notes TEXT
+    )
+  `, (err) => {
     if (err) {
-      return res.status(500).json({ error: err.message });
+      console.error('Error creating payments table:', err.message);
+    } else {
+      console.log('Payments table created/verified');
     }
-    res.json(rows);
+  });
+
+  // Create indexes for better performance
+  msgdb.run(`
+    CREATE INDEX IF NOT EXISTS idx_payments_amount_status 
+    ON payments(amount, status)
+  `, (err) => {
+    if (err) {
+      console.error('Error creating amount_status index:', err.message);
+    } else {
+      console.log('Amount-Status index created');
+    }
+  });
+
+  msgdb.run(`
+    CREATE INDEX IF NOT EXISTS idx_payments_status 
+    ON payments(status)
+  `, (err) => {
+    if (err) {
+      console.error('Error creating status index:', err.message);
+    } else {
+      console.log('Status index created');
+    }
+  });
+
+  msgdb.run(`
+    CREATE INDEX IF NOT EXISTS idx_payments_session_id 
+    ON payments(session_id)
+  `, (err) => {
+    if (err) {
+      console.error('Error creating session_id index:', err.message);
+    } else {
+      console.log('Session ID index created');
+    }
+  });
+
+  msgdb.run(`
+    CREATE INDEX IF NOT EXISTS idx_payments_created_at 
+    ON payments(created_at)
+  `, (err) => {
+    if (err) {
+      console.error('Error creating created_at index:', err.message);
+    } else {
+      console.log('Created At index created');
+    }
+  });
+
+  // Create trigger to update updated_at timestamp
+  msgdb.run(`
+    CREATE TRIGGER IF NOT EXISTS update_payments_timestamp 
+    AFTER UPDATE ON payments
+    BEGIN
+      UPDATE payments SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+    END
+  `, (err) => {
+    if (err) {
+      console.error('Error creating update trigger:', err.message);
+    } else {
+      console.log('Update timestamp trigger created');
+    }
+  });
+
+  // Optional: Create SMS logs table for debugging
+  msgdb.run(`
+    CREATE TABLE IF NOT EXISTS sms_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      raw_message TEXT NOT NULL,
+      extracted_amount INTEGER,
+      matched_payment_id INTEGER,
+      processed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      status TEXT DEFAULT 'processed' CHECK(status IN ('processed', 'ignored', 'error')),
+      error_message TEXT,
+      FOREIGN KEY (matched_payment_id) REFERENCES payments(id)
+    )
+  `, (err) => {
+    if (err) {
+      console.error('Error creating sms_logs table:', err.message);
+    } else {
+      console.log('SMS logs table created/verified');
+    }
+  });
+
+  // Create index for SMS logs
+  msgdb.run(`
+    CREATE INDEX IF NOT EXISTS idx_sms_logs_processed_at 
+    ON sms_logs(processed_at)
+  `, (err) => {
+    if (err) {
+      console.error('Error creating sms_logs index:', err.message);
+    } else {
+      console.log('SMS logs index created');
+    }
+  });
+
+  // Insert some sample data for testing (optional)
+  msgdb.run(`
+    INSERT OR IGNORE INTO payments (qr_id, session_id, amount, status) 
+    VALUES ('QR001', 'sess_123', 100, 'pending')
+  `, (err) => {
+    if (err) {
+      console.error('Error inserting sample data:', err.message);
+    } else {
+      console.log('Sample data inserted (if not exists)');
+    }
   });
 });
 
+// Database helper functions
+const dbHelpers = {
+  // Get all pending payments
+  getPendingPayments: (callback) => {
+    msgdb.all(`
+      SELECT * FROM payments 
+      WHERE status = 'pending' 
+      ORDER BY created_at ASC
+    `, callback);
+  },
+
+  // Get payment by ID
+  getPaymentById: (id, callback) => {
+    msgdb.get(`
+      SELECT * FROM payments WHERE id = ?
+    `, [id], callback);
+  },
+
+  // Get payments by amount and status
+  getPaymentsByAmount: (amount, status, callback) => {
+    msgdb.all(`
+      SELECT * FROM payments 
+      WHERE amount = ? AND status = ? 
+      ORDER BY created_at ASC
+    `, [amount, status], callback);
+  },
+
+  // Update payment status
+  updatePaymentStatus: (id, status, callback) => {
+    msgdb.run(`
+      UPDATE payments 
+      SET status = ?, verified_at = CURRENT_TIMESTAMP 
+      WHERE id = ?
+    `, [status, id], callback);
+  },
+
+  // Log SMS message
+  logSmsMessage: (message, amount, paymentId, status, errorMessage, callback) => {
+    msgdb.run(`
+      INSERT INTO sms_logs (raw_message, extracted_amount, matched_payment_id, status, error_message)
+      VALUES (?, ?, ?, ?, ?)
+    `, [message, amount, paymentId, status, errorMessage], callback);
+  },
+
+  // Clean up old records (optional maintenance)
+  cleanupOldRecords: (daysOld = 30, callback) => {
+    msgdb.run(`
+      DELETE FROM payments 
+      WHERE created_at < datetime('now', '-${daysOld} days')
+      AND status IN ('success', 'failed')
+    `, callback);
+  },
+
+  // Get payment statistics
+  getPaymentStats: (callback) => {
+    msgdb.get(`
+      SELECT 
+        COUNT(*) as total_payments,
+        COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_payments,
+        COUNT(CASE WHEN status = 'success' THEN 1 END) as successful_payments,
+        COUNT(CASE WHEN status = 'failed' THEN 1 END) as failed_payments,
+        SUM(CASE WHEN status = 'success' THEN amount ELSE 0 END) as total_successful_amount
+      FROM payments
+    `, callback);
+  }
+};
 /*
 app.post("/process", (req, res) => {
   const data = req.body;
