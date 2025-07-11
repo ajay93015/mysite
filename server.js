@@ -190,7 +190,11 @@ const {
   getQueueInfo
 } = require('./mgdb');
 
+app.get('/pay_passbook',(req,res)=>{
 
+res.render('pay');
+  
+})
 // UPI QR Generator with Queue Management
 app.get('/pay/:amount', async (req, res) => {
   try {
