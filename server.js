@@ -183,50 +183,183 @@ setInterval(() => {
 */
 
 const {
-  adb,
   createPayment,
   markPaymentSuccess,
+  getPaymentStatus,
   expireOldPayments,
-  getStatus
+  getQueueInfo
 } = require('./mgdb');
 
+const app = express();
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-
-// UPI QR Generator Route
+// UPI QR Generator with Queue Management
 app.get('/pay/:amount', async (req, res) => {
-  const amount = parseFloat(req.params.amount);
-  await createPayment(amount);
+  try {
+    const amount = parseFloat(req.params.amount);
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
 
-  const upiId = '9301751642ajay@ybl'; // Replace with your real UPI ID
-  const upiUrl = `upi://pay?pa=${upiId}&pn=Ajay%20Vishwakarma&am=${amount}&cu=INR`;
-
-  const qrImage = await QRCode.toDataURL(upiUrl);
-
-  res.render('pay', { amount, qrImage });
+    const userIp = req.ip || req.connection.remoteAddress;
+    
+    // Check if user already has a pending payment for this amount
+    try {
+      const existingPayment = await getPaymentStatus(amount, userIp);
+      if (existingPayment.status === 'pending') {
+        // Return existing payment status
+        const queueInfo = getQueueInfo(amount);
+        const isFirstInQueue = existingPayment.currentQueuePosition === 0;
+        
+        let qrImage = null;
+        if (isFirstInQueue) {
+          const upiId = '9301751642ajay@ybl';
+          const upiUrl = `upi://pay?pa=${upiId}&pn=Ajay%20Vishwakarma&am=${amount}&cu=INR`;
+          qrImage = await QRCode.toDataURL(upiUrl);
+        }
+        
+        return res.json({
+          success: true,
+          paymentId: existingPayment.id,
+          amount,
+          qrImage,
+          queuePosition: existingPayment.currentQueuePosition,
+          isFirstInQueue,
+          timeRemaining: Math.max(0, Math.floor((existingPayment.expires_at - Date.now()) / 1000)),
+          message: isFirstInQueue ? 
+            'Your turn! Please complete the payment.' : 
+            `You are #${existingPayment.currentQueuePosition + 1} in queue. Please wait.`
+        });
+      }
+    } catch (e) {
+      // No existing payment, create new one
+    }
+    
+    // Create new payment
+    const paymentData = await createPayment(amount, userIp);
+    
+    // Generate QR code only for first in queue
+    let qrImage = null;
+    if (paymentData.isFirstInQueue) {
+      const upiId = '9301751642ajay@ybl';
+      const upiUrl = `upi://pay?pa=${upiId}&pn=Ajay%20Vishwakarma&am=${amount}&cu=INR`;
+      qrImage = await QRCode.toDataURL(upiUrl);
+    }
+    
+    res.json({
+      success: true,
+      paymentId: paymentData.id,
+      amount,
+      qrImage,
+      queuePosition: paymentData.queuePosition,
+      isFirstInQueue: paymentData.isFirstInQueue,
+      estimatedWaitTime: paymentData.estimatedWaitTime,
+      timeRemaining: Math.floor((paymentData.expiresAt - Date.now()) / 1000),
+      message: paymentData.isFirstInQueue ? 
+        'You can proceed with payment' : 
+        `You are #${paymentData.queuePosition + 1} in queue. Please wait for your turn.`
+    });
+    
+  } catch (error) {
+    console.error('Payment creation error:', error);
+    res.status(500).json({ error: 'Failed to create payment' });
+  }
 });
-// Receive SMS Payment Info
 
+// Your existing SMS webhook - simplified
 app.post('/payment', async (req, res) => {
-  const msg = req.body.message;
-  const match = msg.match(/Rs\.([\d.]+).*Txn ID[:\s]+(\d+)/i);
-  if (!match) return res.send(" Invalid message format");
-
-  const amount = parseFloat(match[1]);
-  const txnId = match[2];
-
-  await markPaymentSuccess(amount, txnId);
-  res.send(" Payment updated");
+  try {
+    const msg = req.body.message;
+    console.log('Received SMS:', msg);
+    
+    // Parse SMS message (your existing logic)
+    const match = msg.match(/Rs\.([\d.]+).*Txn ID[:\s]+(\d+)/i);
+    if (!match) {
+      return res.send("Invalid message format");
+    }
+    
+    const amount = parseFloat(match[1]);
+    const txnId = match[2];
+    
+    console.log(`Processing payment: Amount=${amount}, TxnID=${txnId}`);
+    
+    // Mark first pending payment for this amount as successful
+    const result = await markPaymentSuccess(amount, txnId);
+    
+    console.log(`Payment confirmed for amount ${amount}`);
+    res.send("Payment updated");
+    
+  } catch (error) {
+    console.error('Payment processing error:', error);
+    res.send("Payment processing failed: " + error.message);
+  }
 });
 
-// Check Status
-app.get('/status/:amount', (req, res) => {
+// Check Status by amount and IP
+app.get('/status/:amount', async (req, res) => {
+  try {
+    const amount = parseFloat(req.params.amount);
+    if (isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount' });
+    }
+    
+    const userIp = req.ip || req.connection.remoteAddress;
+    
+    // Cleanup expired payments first
+    expireOldPayments();
+    
+    const payment = await getPaymentStatus(amount, userIp);
+    
+    // Generate QR code if it's now first in queue
+    let qrImage = null;
+    if (payment.status === 'pending' && payment.currentQueuePosition === 0) {
+      const upiId = '9301751642ajay@ybl';
+      const upiUrl = `upi://pay?pa=${upiId}&pn=Ajay%20Vishwakarma&am=${amount}&cu=INR`;
+      qrImage = await QRCode.toDataURL(upiUrl);
+    }
+    
+    res.json({
+      success: true,
+      paymentId: payment.id,
+      amount: payment.amount,
+      status: payment.status,
+      queuePosition: payment.currentQueuePosition,
+      isYourTurn: payment.currentQueuePosition === 0,
+      qrImage,
+      txnId: payment.txn_id,
+      timeRemaining: payment.status === 'pending' ? 
+        Math.max(0, Math.floor((payment.expires_at - Date.now()) / 1000)) : 0,
+      message: payment.status === 'pending' ? 
+        (payment.currentQueuePosition === 0 ? 
+          'Your turn! Please complete the payment.' : 
+          `You are #${payment.currentQueuePosition + 1} in queue. Please wait.`) :
+        `Payment ${payment.status}`
+    });
+    
+  } catch (error) {
+    console.error('Status check error:', error);
+    if (error.message === 'Payment not found') {
+      res.status(404).json({ error: 'No payment found for this amount' });
+    } else {
+      res.status(500).json({ error: 'Status check failed' });
+    }
+  }
+});
+
+// Queue info for debugging
+app.get('/queue/:amount', (req, res) => {
   const amount = parseFloat(req.params.amount);
-  expireOldPayments();
-  getStatus(amount, (err, row) => {
-    if (err || !row) return res.send({ status: 'pending' });
-    res.send({ status: row.status });
-  });
+  const queueInfo = getQueueInfo(amount);
+  res.json(queueInfo);
 });
+
+// Periodic cleanup
+setInterval(() => {
+  expireOldPayments();
+}, 60000); // Every minute
+
+
 app.post("/process", (req, res) => {
   const data = req.body;
   const accountNumber = req.body.account_number;
