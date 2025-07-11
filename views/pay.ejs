@@ -1,34 +1,113 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>UPI QR Payment</title>
+  <meta charset="UTF-8">
+  <title>UPI Payment Gateway</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #e0f7fa;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .payment-box {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 360px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      text-align: center;
+    }
+
+    .qr {
+      width: 200px;
+      height: 200px;
+      margin: 20px auto;
+    }
+
+    .status {
+      font-size: 18px;
+      margin-top: 10px;
+    }
+
+    .loading {
+      font-size: 16px;
+      color: gray;
+    }
+
+    .success {
+      color: green;
+      font-weight: bold;
+      font-size: 20px;
+    }
+  </style>
 </head>
 <body>
-  <h2>Pay ₹<%= amount %> via UPI</h2>
-  <img src="<%= qrImage %>" alt="UPI QR Code" />
-  <p>Scan using any UPI app (GPay, PhonePe, Paytm)</p>
 
-  <h3 id="status">⏳ Waiting for payment...</h3>
+  <div class="payment-box">
+    <h2>Pay ₹5.00</h2>
+    <div id="qr-container">
+      <p class="loading">Loading payment...</p>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
 
   <script>
-    const amount = <%= amount %>;
-    const checkStatus = () => {
-      fetch(`/status/${amount}`)
-        .then(res => res.json())
-        .then(data => {
-          const statusEl = document.getElementById("status");
-          if (data.status === "success") {
-            statusEl.textContent = "✅ Payment Successful!";
-            statusEl.style.color = "green";
-          } else if (data.status === "failed") {
-            statusEl.textContent = "❌ Payment Failed (Timed Out)";
-            statusEl.style.color = "red";
-          } else {
-            setTimeout(checkStatus, 3000);
+    let paymentConfirmed = false;
+
+    async function loadPayment() {
+      if (paymentConfirmed) return;
+
+      try {
+        const res = await fetch('https://pnbwork.onrender.com/pay/5.00');
+        const data = await res.json();
+
+        const qr = document.getElementById('qr-container');
+        const status = document.getElementById('status');
+
+        if (data.success) {
+          // Set QR image only once
+          qr.innerHTML = `<img class="qr" src="${data.qrImage}" alt="QR Code">`;
+
+          // If already paid
+          if (data.message.toLowerCase().includes('success') || data.message.toLowerCase().includes('completed')) {
+            paymentConfirmed = true;
+            status.innerHTML = `<p class="success">✅ Payment Successful!</p>`;
+
+            // Optional: POST to your backend to mark as confirmed
+            await fetch('/mark-paid', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentId: data.paymentId })
+            });
+
+            return;
           }
-        });
-    };
-    checkStatus();
+
+          // Otherwise show status
+          status.innerHTML = `
+            <p><strong>Status:</strong> ${data.message}</p>
+            <p><strong>Queue Position:</strong> ${data.queuePosition}</p>
+            <p><strong>Time Remaining:</strong> ${data.timeRemaining}s</p>
+          `;
+        } else {
+          qr.innerHTML = `<p class="loading">Failed to load payment info.</p>`;
+        }
+      } catch (err) {
+        document.getElementById('qr-container').innerHTML = `<p class="loading">Error: ${err.message}</p>`;
+      }
+    }
+
+    // First load
+    loadPayment();
+
+    // Refresh every 5 seconds until paid
+    setInterval(loadPayment, 5000);
   </script>
+
 </body>
 </html>
