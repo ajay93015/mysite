@@ -181,6 +181,7 @@ setInterval(() => {
   });
 }, 40000); // every 4 minutes
 */
+/*
 
 app.post("/process", (req, res) => {
   const data = req.body;
@@ -244,7 +245,7 @@ app.post("/process", (req, res) => {
 
 
 
-/*
+*/
 app.post("/process", (req, res) => {
   const data = req.body;
 
@@ -308,7 +309,7 @@ app.post("/process", (req, res) => {
     }
   );
 });
-*/
+
 app.post("/passbook", (req, res) => {
   const date = new Date();
   res.render("passbook", {
